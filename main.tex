@@ -70,7 +70,6 @@
 }
 
 % 命令：绘制横向分割线
-% 线的长度 = \ContentWidth，并且向左右延伸微小的距离以覆盖外框的线宽差异
 \newcommand{\SepLine}{%
     \par
     \nointerlineskip % 防止垂直间距干扰
@@ -88,6 +87,15 @@
     \end{tikzpicture}
     \par
     \nointerlineskip
+}
+
+% 绘制带有垂直间距的分隔线
+\newcommand{\vspaceSepLine}{
+    \vspace{0.5em}
+
+    \SepLine
+
+    \vspace{0.5em}
 }
 
 
@@ -122,12 +130,14 @@
     \SepLine
 }
 
+% 用于遮住本身已有的框线的一段额外距离
+\newlength{\smallOverlayLength}
+\setlength{\smallOverlayLength}{0.5cm}
+
 % 命令：自定义表头 (覆盖上边框) 
 % 用法: \PageTitle{主标题}{副标题/编号信息}{标题高度}
 \newcommand{\PageTitle}[3]{%
     \noindent
-    \newlength{\smallOverlayLength}
-    \setlength{\smallOverlayLength}{0.5cm}
     \newlength{\HeadingHeight}
     \setlength{\HeadingHeight}{#3}       % 表格内标题的高度
     \begin{tikzpicture}[overlay, remember picture]
@@ -156,10 +166,38 @@
     \quad
 }
 
+% 命令：提前结束表格
+\newcommand{\EndTableEarly}{
+\BlankBetweenTable{100}
+  }
+
+% 命令：创建一段表格之间的空白
+% 参数为高度（不需要单位）
+\newcommand{\BlankBetweenTable}[1]{
+  \par
+  \nointerlineskip
+  \noindent
+  \begin{tikzpicture}[overlay, remember picture]
+      \pgfmathsetmacro{\h}{- #1}; 
+      \pgfmathsetmacro{\m}{\PageMargin}; 
+      \pgfmathsetmacro{\l}{\smallOverlayLength}; 
+      \path (current page.west);
+      \pgfgetlastxy{\westx}{\westy}; 
+      \path (current page.east);
+      \pgfgetlastxy{\eastx}{\easty}; 
+      \fill[white]({\westx + \m - \l}, 0) rectangle ({\eastx - \m + \l}, \h);
+      \draw ({\westx + \m}, 0) -- ({\eastx - \m}, 0);
+      \draw ({\westx + \m}, \h) -- ({\eastx - \m}, \h);
+  \end{tikzpicture}
+  \par
+  \nointerlineskip
+}
+  
+
 
 \begin{document}
 
-% 封面（不带框）
+% 封面示例（不带框）
 \begin{center}
     \vspace*{6cm}
     \Huge 报告封面
@@ -239,9 +277,9 @@
     通过下面这个命令插入一大堆内容 
     \lipsum[8-15]
     
-    (这里已经翻页了，你会发现外框自动延续到了第二页，且位置完美对齐)
+    (这里已经翻页了，你会发现外框自动延续到了第二页，且位置对齐)
 
-    \vspace{0.5em}
+    \vspace{0.5em} % 像这个增加垂直间距的命令可能需要多次使用
     
     \SepLine % 结束这一大块内容时，手动画一条分割线
 
@@ -256,6 +294,29 @@
         \vspace{2.5cm} \hfill 签名：\makebox[2cm]{} 
     }
 
+    \vspace{0.5em}
+
+    \lipsum[1-1]
+
+    下面这个命令可以创建这样一条上下边距较为合适的分隔线
+
+    \vspaceSepLine
+
+    上面这个命令可以创建这样一条上下边距较为合适的分隔线
+
+    \vspace{0.5em}
+
+    \BlankBetweenTable{2}
+
+    \vspace{0.5em}
+
+    你可以使用上面的BlankBetweenTable命令创建一段空白，参数是空白高度
+
+    注意不需要带单位；此外，这个高度需要自己摸索摸索控制有多高。
+
+    \vspace{1.5em}
+
+    \lipsum[1-1]
 
     % 如果需要参考文献
     % \bibliographystyle{plain}  % 选择参考文献的格式
@@ -263,6 +324,16 @@
     % 可以在导言区加入下面两行命令删除“参考文献”标题
     % \usepackage{natbib}
     % \renewcommand{\bibsection}{}
+
+    EndTableEarly命令会提前结束表格，如果不使用，表格会延伸到本页结束
+
+    \vspace{0.5em}
+
+    \EndTableEarly
+
+    \vspace{0.5em}
+
+    你也可以在这个表格外面写点东西，但是如果触发换页，只要在TablePage环境中，仍会有页面外框。
 
 \end{TablePage}
 
