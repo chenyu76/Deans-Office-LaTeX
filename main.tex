@@ -1,0 +1,258 @@
+\documentclass[12pt,a4paper]{ctexart}
+
+% 配置
+\newlength{\PageMargin}
+\setlength{\PageMargin}{1in}      % 全局外框边距（距离纸张边缘的距离）
+
+\newlength{\ContentGap}
+\setlength{\ContentGap}{0.1in}      % 外框与页面内容之间的距离距
+
+\newlength{\ContentMargin}
+\setlength{\ContentMargin}{\dimexpr\PageMargin + \ContentGap\relax}
+
+\newlength{\RowHeight}
+\setlength{\RowHeight}{1.2em}       % 默认行高（最小高度）
+
+\def\GlobalLineWidth{0.5pt}            % 外框线宽
+\def\InnerLineWidth{\GlobalLineWidth}  % 内部表格线宽（目前使用相同宽度）
+
+\usepackage[
+    margin=\ContentMargin,
+    top=\ContentMargin, 
+    bottom=\ContentMargin,
+    nomarginpar
+]{geometry}
+\usepackage{tikz}
+\usepackage{xltabular} % 用于跨页长表格
+\usepackage{tabularx}  % 用于单行多列计算
+\usepackage{atbegshi}  % 用于每页画框
+\usepackage{calc}      % 用于长度计算
+\usepackage{environ}   % 用于更好的环境定义
+\usepackage{lipsum}    % 插入示例内容
+
+% 计算表格内容的总宽度 (版心宽度)
+\newlength{\ContentWidth}
+\setlength{\ContentWidth}{\dimexpr\textwidth+\ContentGap+\ContentGap\relax}
+
+
+% 定义开关
+\newif\ifShowPageFrame \ShowPageFramefalse
+
+% 绘制全页外框 (Hook到每页输出)
+\newcommand{\DrawFrameOverlay}{%
+    \ifShowPageFrame
+    \begin{tikzpicture}[overlay, remember picture]
+        % 计算坐标：左上角 (L, T) 和 右下角 (R, B)
+        % 注意：Geometry的坐标原点和TikZ current page有所不同，这里直接用current page偏移计算最稳健
+        \draw[line width=\GlobalLineWidth] 
+            ([xshift=\PageMargin, yshift=-\PageMargin]current page.north west) 
+            rectangle 
+            ([xshift=-\PageMargin, yshift=\PageMargin]current page.south east);
+            
+        % 如果需要调试，可以打开下面的网格
+        % \draw[help lines, step=1cm] (current page.north west) grid (current page.south east);
+    \end{tikzpicture}
+    \fi
+}
+\AtBeginShipout{\AtBeginShipoutAddToBox{\DrawFrameOverlay}}
+
+% 通用组件命令
+
+% 环境：开启大表模式
+\newenvironment{TablePage}{%
+    \clearpage
+    \ShowPageFrametrue
+    \setlength{\parindent}{0pt} % 消除缩进
+    \setlength{\parskip}{0pt}   % 消除段间距
+}{%
+    \clearpage
+    \ShowPageFramefalse
+}
+
+% 命令：绘制横向分割线
+% 线的长度 = \ContentWidth，并且向左右延伸微小的距离以覆盖外框的线宽差异
+\newcommand{\SepLine}{%
+    \par
+    \nointerlineskip % 防止垂直间距干扰
+    \noindent
+    \begin{tikzpicture}[overlay, remember picture]
+        % \pgfmathsetmacro{\h}{-1}; 
+        \pgfmathsetmacro{\m}{\PageMargin}; 
+        % \path (current page.center);
+        % \pgfgetlastxy{\centerx}{\centery}; % 提取 x 和 y 坐标
+        \path (current page.west);
+        \pgfgetlastxy{\westx}{\westy}; 
+        \path (current page.east);
+        \pgfgetlastxy{\eastx}{\easty}; 
+        \draw ({\westx + \m}, 0) -- ({\eastx - \m}, 0);
+    \end{tikzpicture}
+    \par
+    \nointerlineskip
+}
+
+
+% 命令：多列行 (核心功能)
+% 用法: \TableRow[最小高度]{列格式}{内容1 & 内容2...}
+% 示例: \TableRow{X|c|X}{ 左边 & 中间 & 右边 }
+% 注意：列格式不需要写两边的竖线，系统会自动处理
+\NewDocumentCommand{\TableRow}{O{\RowHeight} m m}{%
+    \noindent
+    % 使用 tabularx 占满行宽
+    % @{} 消除左右默认间距，使表格紧贴版心边缘
+    \begin{tabularx}{\ContentWidth}{@{} #2 @{}}
+        % 在每个单元格内插入一个不可见的支架(rule)撑开高度
+        \rule{0pt}{#1} #3
+    \end{tabularx}%
+    \par
+    \nointerlineskip % 紧接着画线或下一行
+    \SepLine % 每行结束后自动画分割线
+}
+
+% 命令：跨页长文本块
+% 类似于 Word 的大文本框，可以确定高度
+% 用法: \begin{LongTextField}[高度] ... \end{LongTextField}
+\NewEnviron{LongTextField}[1][5cm]{%
+    \noindent
+    \begin{minipage}[t][#1][t]{\ContentWidth}
+        \vspace{0.5em} % 顶部留白
+        \BODY
+    \end{minipage}
+    \par
+    \nointerlineskip
+    \SepLine
+}
+
+% 命令：自定义表头 (覆盖上边框) 
+% 用法: \PageTitle{主标题}{副标题/编号信息}
+\newcommand{\PageTitle}[3]{%
+    \noindent
+    \newlength{\smallOverlayLength}
+    \setlength{\smallOverlayLength}{0.5cm}
+    \newlength{\HeadingHeight}
+    \setlength{\HeadingHeight}{#3}       % 表格内标题的高度
+    \begin{tikzpicture}[overlay, remember picture]
+         % 1. 用白色矩形遮盖顶部的全局边框线 (以便写入标题)
+         % 这里的计算略微复杂，为了通用性，我们遮盖 顶部margin向下 \HeadingHeight 的区域
+         \fill[white] 
+            ([xshift=\PageMargin+\GlobalLineWidth-\smallOverlayLength, yshift=-\PageMargin+\smallOverlayLength]current page.north west) 
+            rectangle 
+            ([xshift=-\PageMargin-\GlobalLineWidth+\smallOverlayLength, yshift=-\PageMargin-\HeadingHeight]current page.north east);
+            
+         % 2. 绘制标题内容
+         \node[yshift=-1.2cm] at ([xshift=0.5\paperwidth, yshift=-\PageMargin]current page.north west) {
+            \begin{minipage}{\ContentWidth}
+                \centering
+                {#1} \\[0.5em]
+                {#2}
+            \end{minipage}
+         };
+         
+         % 3. 补画标题下方的横线 (其实由第一行 \SepLine 替代也可以，这里手动画更保险)
+         \draw[line width=\GlobalLineWidth] 
+            ([xshift=\PageMargin, yshift=-\PageMargin-\HeadingHeight]current page.north west) --
+            ([xshift=-\PageMargin, yshift=-\PageMargin-\HeadingHeight]current page.north east);
+    \end{tikzpicture}
+    % 这里的 vspace 要等于上面遮盖区域的高度，把正文推下去
+    \vspace{\HeadingHeight}
+    \quad
+}
+
+
+\begin{document}
+
+% 封面（不带框）
+\begin{center}
+    \vspace*{6cm}
+    \Huge 报告封面
+\end{center}
+
+% 开始带框页面
+\begin{TablePage}
+
+    % 1. 生成表头
+    \PageTitle{
+      \huge \bfseries 本科毕业设计（论文）开题报告
+    }{
+      \large XX大学 · 2077届
+    }{
+      2.5cm % 标题高度
+    }
+
+    % 2. 单行多列信息
+    % 语法：\TableRow{列格式}{内容}
+    % X 代表自动宽度，c 代表居中，| 代表竖线
+    % 技巧：通过调整 X 的系数 (如 >{\hsize=0.5\hsize}X) 可以控制列宽比例
+    \vspace{-2em} % 手动删除一些奇怪的间距
+    \TableRow{c|X}{ 
+        \textbf{题\quad 目} & 基于LaTeX的通用表格模板设计与实现 
+    }
+    
+    \TableRow{ c | X | c | X }{ 
+        \textbf{学生姓名} & 张三 & \textbf{学\quad 号} & 2073123456 
+    }
+    
+    \TableRow{ c | X | c | X }{ 
+        \textbf{学\quad 院} & 计算机与软件学院 & \textbf{专\quad 业} & 计算机科学 
+    }
+    
+    \TableRow{ c | X | c | >{\hsize=1.2\hsize}X }{ 
+        \textbf{指导教师} & 王教授 & \textbf{职 称} & 教授 
+    }
+
+    % 3. 大段文本区域 (标题栏)
+    % 这里的 formatting 可以自由发挥
+    \TableRow{l}{ \textbf{一、本选题的意义及国内外发展状况：} }
+    
+    % 4. 大段文本内容 (跨页测试)
+    % 如果内容很少，可以用 LongTextField 指定高度占位
+    \begin{LongTextField}[8cm]
+        在此处输入选题意义。这个区域的高度被强制设为 8cm，适合手写填表。
+        
+        如果文字超出了这个高度，它会自动向下延伸（但在 Minipage 模式下不会跨页）。
+        
+        如果需要跨页的长文本，请看下一节。
+    \end{LongTextField}
+
+    \TableRow{l}{ \textbf{二、研究内容：} }
+
+    % 5. 真正的跨页长文本
+    % 对于正文非常长的部分，不要用 \TableRow，直接写内容，
+    % 侧边的框由 overlay 提供，底部的分割线由下一行 \SepLine 提供。
+    \vspace{0.5em}
+    这里是研究内容的正文。由于我们使用的是 overlay 画外框，这里的文本可以像普通 LaTeX 文档一样编写。
+    
+    你可以随意使用列表：
+    \begin{itemize}
+        \item 这是一个列表项
+        \item 这是另一个列表项
+    \end{itemize}
+    
+    
+    我们继续填充内容以测试翻页效果...
+
+    通过下面这个命令插入一大堆内容 
+    \lipsum[8-15]
+
+    
+    
+    
+    (这里已经翻页了，你会发现外框自动延续到了第二页，且位置完美对齐)
+    
+    \SepLine % 结束这一大块内容时，手动画一条分割线
+
+    % 6. 结尾签字栏
+    \TableRow{X | X}{
+        \centering \textbf{指导教师意见} & \centering \textbf{学院审核意见}
+    }
+    
+    % 最后一栏，高度设大一点
+    \TableRow[4cm]{X | X}{
+        \vspace{2.5cm} \hfill 签名：\makebox[2cm]{} & 
+        \vspace{2.5cm} \hfill 签名：\makebox[2cm]{} 
+    }
+
+\end{TablePage}
+
+TablePage环境外面的内容可以不带框。但是需要强制换页
+
+\end{document}
