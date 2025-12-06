@@ -218,22 +218,22 @@
     % 单行多列信息
     % 语法：\TableRow{列格式}{内容}
     % X 代表自动宽度，c 代表居中，| 代表竖线
-    % 技巧：通过调整 X 的系数 (如 >{\hsize=0.5\hsize}X) 可以控制列宽比例
+    % 技巧：通过调整 X 的系数 (如 >{\hsize=0.5\hsize}X ) 可以控制列宽比例
     \vspace{-2em} % 手动删除一些奇怪的间距
     \TableRow{c|X}{ 
-        \textbf{题\quad 目} & 基于LaTeX的通用表格模板设计与实现 
+        \textbf{题\quad\quad 目} & 基于LaTeX的通用表格模板设计与实现 
     }
     
     \TableRow{ c | X | c | X }{ 
-        \textbf{学生姓名} & 张三 & \textbf{学\quad 号} & 2073123456 
+        \textbf{姓\quad\quad 名} & 张三 & \textbf{学\quad 号} & 2073123456 
     }
     
     \TableRow{ c | X | c | X }{ 
-        \textbf{学\quad 院} & 计算机与软件学院 & \textbf{专\quad 业} & 计算机科学 
+        \textbf{学\quad\quad 院} & 计算机与软件学院 & \textbf{专\quad 业} & 计算机科学 
     }
     
-    \TableRow{ c | X | c | >{\hsize=1.2\hsize}X }{ 
-        \textbf{指导教师} & 王教授 & \textbf{职 称} & 教授 
+    \TableRow{ c | X | c | X }{ 
+        \textbf{指导教师} & 王教授 & \textbf{职\quad 称} & 教授 
     }
 
     % 标题栏，l 表示左对齐
