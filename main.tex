@@ -91,7 +91,7 @@
 }
 
 
-% 命令：多列行 (核心功能)
+% 命令：多列行 
 % 用法: \TableRow[最小高度]{列格式}{内容1 & 内容2...}
 % 示例: \TableRow{X|c|X}{ 左边 & 中间 & 右边 }
 % 注意：列格式不需要写两边的竖线，系统会自动处理
@@ -100,7 +100,7 @@
     % 使用 tabularx 占满行宽
     % @{} 消除左右默认间距，使表格紧贴版心边缘
     \begin{tabularx}{\textwidth}{@{} #2 @{}}
-        % 在每个单元格内插入一个不可见的支架(rule)撑开高度
+        % 在每个单元格内插入一个不可见的rule撑开高度
         \rule{0pt}{#1} #3
     \end{tabularx}%
     \par
@@ -123,7 +123,7 @@
 }
 
 % 命令：自定义表头 (覆盖上边框) 
-% 用法: \PageTitle{主标题}{副标题/编号信息}
+% 用法: \PageTitle{主标题}{副标题/编号信息}{标题高度}
 \newcommand{\PageTitle}[3]{%
     \noindent
     \newlength{\smallOverlayLength}
