@@ -5,13 +5,13 @@
 \setlength{\PageMargin}{1in}      % 全局外框边距（距离纸张边缘的距离）
 
 \newlength{\ContentGap}
-\setlength{\ContentGap}{0.1in}      % 外框与页面内容之间的距离距
+\setlength{\ContentGap}{0.1in}    % 外框与页面内容之间的距离距
 
 \newlength{\ContentMargin}
 \setlength{\ContentMargin}{\dimexpr\PageMargin + \ContentGap\relax}
 
 \newlength{\RowHeight}
-\setlength{\RowHeight}{1.2em}       % 默认行高（最小高度）
+\setlength{\RowHeight}{1.2em}     % 默认行高（最小高度）
 
 \def\GlobalLineWidth{0.5pt}            % 外框线宽
 \def\InnerLineWidth{\GlobalLineWidth}  % 内部表格线宽（目前使用相同宽度）
@@ -43,7 +43,7 @@
     \ifShowPageFrame
     \begin{tikzpicture}[overlay, remember picture]
         % 计算坐标：左上角 (L, T) 和 右下角 (R, B)
-        % 注意：Geometry的坐标原点和TikZ current page有所不同，这里直接用current page偏移计算最稳健
+        % Geometry的坐标原点和TikZ current page有所不同，这里直接用current page偏移计算最稳健
         \draw[line width=\GlobalLineWidth] 
             ([xshift=\PageMargin, yshift=-\PageMargin]current page.north west) 
             rectangle 
@@ -131,14 +131,13 @@
     \newlength{\HeadingHeight}
     \setlength{\HeadingHeight}{#3}       % 表格内标题的高度
     \begin{tikzpicture}[overlay, remember picture]
-         % 1. 用白色矩形遮盖顶部的全局边框线 (以便写入标题)
-         % 这里的计算略微复杂，为了通用性，我们遮盖 顶部margin向下 \HeadingHeight 的区域
+         % 用白色矩形遮盖顶部的全局边框线
          \fill[white] 
             ([xshift=\PageMargin+\GlobalLineWidth-\smallOverlayLength, yshift=-\PageMargin+\smallOverlayLength]current page.north west) 
             rectangle 
             ([xshift=-\PageMargin-\GlobalLineWidth+\smallOverlayLength, yshift=-\PageMargin-\HeadingHeight]current page.north east);
             
-         % 2. 绘制标题内容
+         % 绘制标题内容
          \node[yshift=-1.2cm] at ([xshift=0.5\paperwidth, yshift=-\PageMargin]current page.north west) {
             \begin{minipage}{\ContentWidth}
                 \centering
@@ -147,7 +146,7 @@
             \end{minipage}
          };
          
-         % 3. 补画标题下方的横线 (其实由第一行 \SepLine 替代也可以，这里手动画更保险)
+         % 补画标题下方的横线
          \draw[line width=\GlobalLineWidth] 
             ([xshift=\PageMargin, yshift=-\PageMargin-\HeadingHeight]current page.north west) --
             ([xshift=-\PageMargin, yshift=-\PageMargin-\HeadingHeight]current page.north east);
@@ -250,6 +249,14 @@
         \vspace{2.5cm} \hfill 签名：\makebox[2cm]{} & 
         \vspace{2.5cm} \hfill 签名：\makebox[2cm]{} 
     }
+
+
+    % 如果需要参考文献
+    % \bibliographystyle{plain}  % 选择参考文献的格式
+    % \bibliography{references.bib}  % 引用.bib文件
+    % 可以在导言区加入下面两行命令删除“参考文献”标题
+    % \usepackage{natbib}
+    % \renewcommand{\bibsection}{}
 
 \end{TablePage}
 
