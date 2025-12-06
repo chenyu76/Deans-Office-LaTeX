@@ -206,7 +206,7 @@
 % 开始带框页面
 \begin{TablePage}
 
-    % 1. 生成表头
+    % 生成表头
     \PageTitle{
       \huge \bfseries 本科毕业设计（论文）开题报告
     }{
@@ -215,7 +215,7 @@
       2.5cm % 标题高度
     }
 
-    % 2. 单行多列信息
+    % 单行多列信息
     % 语法：\TableRow{列格式}{内容}
     % X 代表自动宽度，c 代表居中，| 代表竖线
     % 技巧：通过调整 X 的系数 (如 >{\hsize=0.5\hsize}X) 可以控制列宽比例
@@ -236,11 +236,10 @@
         \textbf{指导教师} & 王教授 & \textbf{职 称} & 教授 
     }
 
-    % 3. 大段文本区域 (标题栏)
-    % 这里的 formatting 可以自由发挥
+    % 标题栏，l 表示左对齐
     \TableRow{l}{ \textbf{一、本选题的意义及国内外发展状况：} }
     
-    % 4. 大段文本内容 (跨页测试)
+    % 大段文本内容
     % 如果内容很少，可以用 LongTextField 指定高度占位
     \begin{LongTextField}[8cm]
         样式修改后需要第二次编译边框线才能正确显示。
@@ -255,7 +254,6 @@
 
     \TableRow{l}{ \textbf{二、研究内容：} }
 
-    % 5. 真正的跨页长文本
     % 对于正文非常长的部分，不要用 \TableRow，直接写内容，
     % 侧边的框由 overlay 提供，底部的分割线由下一行 \SepLine 提供。
     \vspace{0.5em}
@@ -290,8 +288,7 @@
     
     % 最后一栏，高度设大一点
     \TableRow[4cm]{X | X}{
-        \vspace{2.5cm} \hfill 签名：\makebox[2cm]{} & 
-        \vspace{2.5cm} \hfill 签名：\makebox[2cm]{} 
+        \vspace{2.5cm} & \vspace{2.5cm} 
     }
 
     \vspace{0.5em}
@@ -337,6 +334,6 @@
 
 \end{TablePage}
 
-TablePage环境外面的内容可以不带框。但是需要强制换页
+TablePage环境外面的内容可以不带框。但是需要强制换页。
 
 \end{document}
