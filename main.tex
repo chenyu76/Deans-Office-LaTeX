@@ -168,17 +168,17 @@
 
 % 命令：提前结束表格
 \newcommand{\EndTableEarly}{
-  \BlankBetweenTable{100}
+  \BlankBetweenTable{100cm}
 }
 
 % 命令：创建一段表格之间的空白
-% 参数为高度（不需要单位）
+% 参数为高度
 \newcommand{\BlankBetweenTable}[1]{
   \par
   \nointerlineskip
   \noindent
   \begin{tikzpicture}[overlay, remember picture]
-      \pgfmathsetmacro{\h}{- #1}; 
+      \pgfmathsetlengthmacro{\h}{-(#1)}
       \pgfmathsetmacro{\m}{\PageMargin}; 
       \pgfmathsetmacro{\l}{\smallOverlayLength}; 
       \path (current page.west);
@@ -290,15 +290,15 @@
 
     \vspace{0.5em}
 
-    \BlankBetweenTable{2}
+    \BlankBetweenTable{3.5em}
 
     \vspace{0.5em}
 
-    你可以使用上面的BlankBetweenTable命令创建一段空白，参数是空白高度
+    你可以使用上面的BlankBetweenTable命令创建一段空白，参数是空白的高度
 
-    注意不需要带单位；此外，这个高度需要自己摸索摸索控制有多高。
+    这个高度需要自己摸索摸索控制有多高。
 
-    \vspace{1.5em}
+    \vspace{0.5em}
 
     \lipsum[1-1]
 
