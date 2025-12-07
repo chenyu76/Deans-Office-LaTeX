@@ -136,10 +136,12 @@
 
 % 命令：自定义表头 (覆盖上边框) 
 % 用法: \PageTitle{主标题}{副标题/编号信息}{标题高度}
-\newcommand{\PageTitle}[3]{%
+\newcommand{\PageTitle}[2]{%
+    \par
+    \nointerlineskip
     \noindent
     \newlength{\HeadingHeight}
-    \setlength{\HeadingHeight}{#3}       % 表格内标题的高度
+    \setlength{\HeadingHeight}{#2}
     \begin{tikzpicture}[overlay, remember picture]
          % 用白色矩形遮盖顶部的全局边框线
          \fill[white] 
@@ -150,9 +152,7 @@
          % 绘制标题内容
          \node[yshift=-1.2cm] at ([xshift=0.5\paperwidth, yshift=-\PageMargin]current page.north west) {
             \begin{minipage}{\ContentWidth}
-                \centering
-                {#1} \\[0.5em]
-                {#2}
+                #1
             \end{minipage}
          };
          
@@ -161,9 +161,9 @@
             ([xshift=\PageMargin, yshift=-\PageMargin-\HeadingHeight]current page.north west) --
             ([xshift=-\PageMargin, yshift=-\PageMargin-\HeadingHeight]current page.north east);
     \end{tikzpicture}
-    % 这里的 vspace 要等于上面遮盖区域的高度，把正文推下去
-    \vspace{\HeadingHeight}
-    \quad
+    \vspace{\dimexpr\HeadingHeight-\ContentGap-1em\relax}
+    \par
+    \nointerlineskip
 }
 
 % 命令：提前结束表格
@@ -198,21 +198,18 @@
 \begin{document}
 % 开始带框页面
 \begin{TablePage}
-
     % 生成表头
     \PageTitle{
-      \huge \bfseries 本科毕业设计（论文）开题报告
-    }{
+      \centering
+      \huge \bfseries 本科毕业设计（论文）开题报告 \\[0.5em]
       \large XX大学 · 2077届
     }{
       2.5cm % 标题高度
     }
-
     % 单行多列信息
     % 语法：\TableRow{列格式}{内容}
     % X 代表自动宽度，c 代表居中，| 代表竖线
     % 技巧：通过调整 X 的系数 (如 >{\hsize=0.5\hsize}X ) 可以控制列宽比例
-    \vspace{-2em} % 手动删除一些奇怪的间距
     \TableRow{c|X}{ 
         \textbf{题\quad\quad 目} & 基于LaTeX的通用表格模板设计与实现 
     }
