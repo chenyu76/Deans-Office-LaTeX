@@ -17,10 +17,10 @@
 \def\InnerLineWidth{\GlobalLineWidth}  % 内部表格线宽（目前使用相同宽度）
 
 \usepackage[
-    margin=\ContentMargin,
-    top=\ContentMargin, 
-    bottom=\ContentMargin,
-    nomarginpar
+  margin=\ContentMargin,
+  top=\ContentMargin,
+  bottom=\ContentMargin,
+  nomarginpar
 ]{geometry}
 \usepackage{tikz}
 \usepackage{xltabular} % 用于跨页长表格
@@ -34,25 +34,25 @@
 \newlength{\ContentWidth}
 \setlength{\ContentWidth}{\dimexpr\textwidth+\ContentGap+\ContentGap\relax}
 
-
 % 定义开关
 \newif\ifShowPageFrame \ShowPageFramefalse
 
 % 绘制全页外框 (Hook到每页输出)
 \newcommand{\DrawFrameOverlay}{%
-    \ifShowPageFrame
-    \begin{tikzpicture}[overlay, remember picture]
-        % 计算坐标：左上角 (L, T) 和 右下角 (R, B)
-        % Geometry的坐标原点和TikZ current page有所不同，这里直接用current page偏移计算最稳健
-        \draw[line width=\GlobalLineWidth] 
-            ([xshift=\PageMargin, yshift=-\PageMargin]current page.north west) 
-            rectangle 
-            ([xshift=-\PageMargin, yshift=\PageMargin]current page.south east);
-            
-        % 如果需要调试，可以打开下面的网格
-        % \draw[help lines, step=1cm] (current page.north west) grid (current page.south east);
-    \end{tikzpicture}
-    \fi
+  \ifShowPageFrame
+  \begin{tikzpicture}[overlay, remember picture]
+    % 计算坐标：左上角 (L, T) 和 右下角 (R, B)
+    % Geometry的坐标原点和TikZ current page有所不同，这里直接用current page偏移计算最稳健
+    \draw[line width=\GlobalLineWidth]
+    ([xshift=\PageMargin, yshift=-\PageMargin]current page.north west)
+    rectangle
+    ([xshift=-\PageMargin, yshift=\PageMargin]current page.south east);
+
+    % 如果需要调试，可以打开下面的网格
+    % \draw[help lines, step=1cm] (current page.north west) grid
+    % (current page.south east);
+  \end{tikzpicture}
+  \fi
 }
 \AtBeginShipout{\AtBeginShipoutAddToBox{\DrawFrameOverlay}}
 
@@ -60,110 +60,114 @@
 
 % 环境：开启大表模式
 \newenvironment{TablePage}{%
-    \clearpage
-    \ShowPageFrametrue
-    \setlength{\parindent}{0pt} % 消除缩进
-    \setlength{\parskip}{0pt}   % 消除段间距
+  \clearpage
+  \ShowPageFrametrue
+  \setlength{\parindent}{0pt} % 消除缩进
+  \setlength{\parskip}{0pt}   % 消除段间距
 }{%
-    \clearpage
-    \ShowPageFramefalse
+  \clearpage
+  \ShowPageFramefalse
 }
 
 % 命令：绘制横向分割线
 \newcommand{\SepLine}{%
-    \par
-    \nointerlineskip % 防止垂直间距干扰
-    \noindent
-    \begin{tikzpicture}[overlay, remember picture]
-        % \pgfmathsetmacro{\h}{-1}; 
-        \pgfmathsetmacro{\m}{\PageMargin}; 
-        % \path (current page.center);
-        % \pgfgetlastxy{\centerx}{\centery}; % 提取 x 和 y 坐标
-        \path (current page.west);
-        \pgfgetlastxy{\westx}{\westy}; 
-        \path (current page.east);
-        \pgfgetlastxy{\eastx}{\easty}; 
-        \draw ({\westx + \m}, 0) -- ({\eastx - \m}, 0);
-    \end{tikzpicture}
-    \par
-    \nointerlineskip
+  \par
+  \nointerlineskip % 防止垂直间距干扰
+  \noindent
+  \begin{tikzpicture}[overlay, remember picture]
+    % \pgfmathsetmacro{\h}{-1};
+    \pgfmathsetmacro{\m}{\PageMargin};
+    % \path (current page.center);
+    % \pgfgetlastxy{\centerx}{\centery}; % 提取 x 和 y 坐标
+    \path (current page.west);
+    \pgfgetlastxy{\westx}{\westy};
+    \path (current page.east);
+    \pgfgetlastxy{\eastx}{\easty};
+    \draw ({\westx + \m}, 0) -- ({\eastx - \m}, 0);
+  \end{tikzpicture}
+  \par
+  \nointerlineskip
 }
 
 % 绘制带有垂直间距的分隔线
 \newcommand{\vspaceSepLine}{
-    \vspace{0.5em}
+  \vspace{0.5em}
 
-    \SepLine
+  \SepLine
 
-    \vspace{0.5em}
+  \vspace{0.5em}
 }
 
-
-% 命令：多列行 
+% 命令：多列行
 % 用法: \TableRow[最小高度]{列格式}{内容1 & 内容2...}
 % 示例: \TableRow{X|c|X}{ 左边 & 中间 & 右边 }
 % 注意：列格式不需要写两边的竖线，系统会自动处理
 \NewDocumentCommand{\TableRow}{O{\RowHeight} m m}{%
-    \noindent
-    % 使用 tabularx 占满行宽
-    % @{} 消除左右默认间距，使表格紧贴版心边缘
-    \begin{tabularx}{\textwidth}{@{} #2 @{}}
-        % 在每个单元格内插入一个不可见的rule撑开高度
-        \rule{0pt}{#1} #3
-    \end{tabularx}%
-    \par
-    \nointerlineskip % 紧接着画线或下一行
-    \SepLine % 每行结束后自动画分割线
+  \noindent
+  % 使用 tabularx 占满行宽
+  % @{} 消除左右默认间距，使表格紧贴版心边缘
+  \begin{tabularx}{\textwidth}{@{} #2 @{}}
+    % 在每个单元格内插入一个不可见的rule撑开高度
+    \rule{0pt}{#1} #3
+  \end{tabularx}%
+  \par
+  \nointerlineskip % 紧接着画线或下一行
+  \SepLine % 每行结束后自动画分割线
 }
 
 % 命令：跨页长文本块
 % 类似于 Word 的大文本框，可以确定高度
 % 用法: \begin{LongTextField}[高度] ... \end{LongTextField}
 \NewEnviron{LongTextField}[1][5cm]{%
-    \noindent
-    \begin{minipage}[t][#1][t]{\textwidth}
-        \vspace{0.5em} % 顶部留白
-        \BODY
-    \end{minipage}
-    \par
-    \nointerlineskip
-    \SepLine
+  \noindent
+  \begin{minipage}[t][#1][t]{\textwidth}
+    \vspace{0.5em} % 顶部留白
+    \BODY
+  \end{minipage}
+  \par
+  \nointerlineskip
+  \SepLine
 }
 
 % 用于遮住本身已有的框线的一段额外距离
 \newlength{\smallOverlayLength}
 \setlength{\smallOverlayLength}{0.5cm}
 
-% 命令：自定义表头 (覆盖上边框) 
+% 命令：自定义表头 (覆盖上边框)
 % 用法: \PageTitle{标题}{标题高度}
 \newcommand{\PageTitle}[2]{%
-    \par
-    \nointerlineskip
-    \noindent
-    \newlength{\HeadingHeight}
-    \setlength{\HeadingHeight}{#2}
-    \begin{tikzpicture}[overlay, remember picture]
-         % 用白色矩形遮盖顶部的全局边框线
-         \fill[white] 
-            ([xshift=\PageMargin+\GlobalLineWidth-\smallOverlayLength, yshift=-\PageMargin+\smallOverlayLength]current page.north west) 
-            rectangle 
-            ([xshift=-\PageMargin-\GlobalLineWidth+\smallOverlayLength, yshift=-\PageMargin-\HeadingHeight]current page.north east);
-            
-         % 绘制标题内容
-         \node[yshift=-1.2cm] at ([xshift=0.5\paperwidth, yshift=-\PageMargin]current page.north west) {
-            \begin{minipage}{\ContentWidth}
-                #1
-            \end{minipage}
-         };
-         
-         % 补画标题下方的横线
-         \draw[line width=\GlobalLineWidth] 
-            ([xshift=\PageMargin, yshift=-\PageMargin-\HeadingHeight]current page.north west) --
-            ([xshift=-\PageMargin, yshift=-\PageMargin-\HeadingHeight]current page.north east);
-    \end{tikzpicture}
-    \vspace{\dimexpr\HeadingHeight-\ContentGap-1em\relax}
-    \par
-    \nointerlineskip
+  \par
+  \nointerlineskip
+  \noindent
+  \newlength{\HeadingHeight}
+  \setlength{\HeadingHeight}{#2}
+  \begin{tikzpicture}[overlay, remember picture]
+    % 用白色矩形遮盖顶部的全局边框线
+    \fill[white]
+    ([xshift=\PageMargin+\GlobalLineWidth-\smallOverlayLength,
+    yshift=-\PageMargin+\smallOverlayLength]current page.north west)
+    rectangle
+    ([xshift=-\PageMargin-\GlobalLineWidth+\smallOverlayLength,
+    yshift=-\PageMargin-\HeadingHeight]current page.north east);
+
+    % 绘制标题内容
+    \node[yshift=-1.2cm] at ([xshift=0.5\paperwidth,
+    yshift=-\PageMargin]current page.north west) {
+      \begin{minipage}{\ContentWidth}
+        #1
+      \end{minipage}
+    };
+
+    % 补画标题下方的横线
+    \draw[line width=\GlobalLineWidth]
+    ([xshift=\PageMargin, yshift=-\PageMargin-\HeadingHeight]current
+    page.north west) --
+    ([xshift=-\PageMargin, yshift=-\PageMargin-\HeadingHeight]current
+    page.north east);
+  \end{tikzpicture}
+  \vspace{\dimexpr\HeadingHeight-\ContentGap-1em\relax}
+  \par
+  \nointerlineskip
 }
 
 % 命令：提前结束表格
@@ -178,143 +182,142 @@
   \nointerlineskip
   \noindent
   \begin{tikzpicture}[overlay, remember picture]
-      \pgfmathsetlengthmacro{\h}{-(#1)}
-      \pgfmathsetmacro{\m}{\PageMargin}; 
-      \pgfmathsetmacro{\l}{\smallOverlayLength}; 
-      \path (current page.west);
-      \pgfgetlastxy{\westx}{\westy}; 
-      \path (current page.east);
-      \pgfgetlastxy{\eastx}{\easty}; 
-      \fill[white]({\westx + \m - \l}, 0) rectangle ({\eastx - \m + \l}, \h);
-      \draw ({\westx + \m}, 0) -- ({\eastx - \m}, 0);
-      \draw ({\westx + \m}, \h) -- ({\eastx - \m}, \h);
+    \pgfmathsetlengthmacro{\h}{-(#1)}
+    \pgfmathsetmacro{\m}{\PageMargin};
+    \pgfmathsetmacro{\l}{\smallOverlayLength};
+    \path (current page.west);
+    \pgfgetlastxy{\westx}{\westy};
+    \path (current page.east);
+    \pgfgetlastxy{\eastx}{\easty};
+    \fill[white]({\westx + \m - \l}, 0) rectangle ({\eastx - \m + \l}, \h);
+    \draw ({\westx + \m}, 0) -- ({\eastx - \m}, 0);
+    \draw ({\westx + \m}, \h) -- ({\eastx - \m}, \h);
   \end{tikzpicture}
   \par
   \nointerlineskip
 }
-  
 
 
 \begin{document}
 % 开始带框页面
 \begin{TablePage}
-    % 生成表头
-    \PageTitle{
-      \centering
-      \huge \bfseries 本科毕业设计（论文）开题报告 \\[0.5em]
-      \large XX大学 · 2077届
-    }{
-      2.5cm % 标题高度
-    }
-    % 单行多列信息
-    % 语法：\TableRow{列格式}{内容}
-    % X 代表自动宽度，c 代表居中，| 代表竖线
-    % 技巧：通过调整 X 的系数 (如 >{\hsize=0.5\hsize}X ) 可以控制列宽比例
-    \TableRow{c|X}{ 
-        \textbf{题\quad\quad 目} & 基于LaTeX的通用表格模板设计与实现 
-    }
-    
-    \TableRow{ c | X | c | X }{ 
-        \textbf{姓\quad\quad 名} & 张三 & \textbf{学\quad 号} & 2073123456 
-    }
-    
-    \TableRow{ c | X | c | X }{ 
-        \textbf{学\quad\quad 院} & 计算机与软件学院 & \textbf{专\quad 业} & 计算机科学 
-    }
-    
-    \TableRow{ c | X | c | X }{ 
-        \textbf{指导教师} & 王教授 & \textbf{职\quad 称} & 教授 
-    }
+  % 生成表头
+  \PageTitle{
+    \centering
+    \huge \bfseries 本科毕业设计（论文）开题报告 \\[0.5em]
+    \large XX大学 · 2077届
+  }{
+    2.5cm % 标题高度
+  }
+  % 单行多列信息
+  % 语法：\TableRow{列格式}{内容}
+  % X 代表自动宽度，c 代表居中，| 代表竖线
+  % 技巧：通过调整 X 的系数 (如 >{\hsize=0.5\hsize}X ) 可以控制列宽比例
+  \TableRow{c|X}{
+    \textbf{题\quad\quad 目} & 基于LaTeX的通用表格模板设计与实现
+  }
 
-    % 标题栏，l 表示左对齐
-    \TableRow{l}{ \textbf{一、本选题的意义及国内外发展状况：} }
-    
-    % 大段文本内容
-    % 如果内容很少，可以用 LongTextField 指定高度占位
-    \begin{LongTextField}[8cm]
-        样式修改后需要第二次编译边框线才能正确显示。
+  \TableRow{ c | X | c | X }{
+    \textbf{姓\quad\quad 名} & 张三 & \textbf{学\quad 号} & 2073123456
+  }
 
-        这个区域的高度被强制设为 8cm，适合手写填表。
-        
-        如果需要跨页的长文本，请看下一节。
-      
-    \end{LongTextField}
+  \TableRow{ c | X | c | X }{
+    \textbf{学\quad\quad 院} & 计算机与软件学院 & \textbf{专\quad 业} & 计算机科学
+  }
 
-    \TableRow{l}{ \textbf{二、研究内容：} }
+  \TableRow{ c | X | c | X }{
+    \textbf{指导教师} & 王教授 & \textbf{职\quad 称} & 教授
+  }
 
-    % 对于正文非常长的部分，不要用 \TableRow，直接写内容，
-    % 侧边的框由 overlay 提供，底部的分割线由下一行 \SepLine 提供。
-    \vspace{0.5em}
-    这里是研究内容的正文。由于我们使用的是 overlay 画外框，这里的文本可以像普通 LaTeX 文档一样编写。
-    
-    可以随意使用列表：
-    \begin{itemize}
-        \item 这是一个列表项
-        \item 这是另一个列表项
-    \end{itemize}
-    
-    也可以显示公式：
-    \begin{equation}
-        e^{\pi i} + 1 = 0
-    \end{equation}
-    
-    通过下面这个命令插入一大堆内容 
-    \lipsum[8-15]
-    
-    \vspace{0.5em} % 像这个增加垂直间距的命令可能需要多次使用
-    
-    \SepLine % 结束这一大块内容时，手动画一条分割线
+  % 标题栏，l 表示左对齐
+  \TableRow{l}{ \textbf{一、本选题的意义及国内外发展状况：} }
 
-    % 结尾签字栏
-    \TableRow{X | X}{
-        \centering \textbf{指导教师意见} & \centering \textbf{学院审核意见}
-    }
-    
-    % 最后一栏，高度设大一点
-    \TableRow[4cm]{X | X}{
-        \vspace{2.5cm} & \vspace{2.5cm} 
-    }
+  % 大段文本内容
+  % 如果内容很少，可以用 LongTextField 指定高度占位
+  \begin{LongTextField}[8cm]
+    样式修改后需要第二次编译边框线才能正确显示。
 
-    \vspace{0.5em}
+    这个区域的高度被强制设为 8cm，适合手写填表。
 
-    \lipsum[1-1]
+    如果需要跨页的长文本，请看下一节。
 
-    下面这个命令可以创建这样一条上下边距较为合适的分隔线
+  \end{LongTextField}
 
-    \vspaceSepLine
+  \TableRow{l}{ \textbf{二、研究内容：} }
 
-    上面这个命令可以创建这样一条上下边距较为合适的分隔线
+  % 对于正文非常长的部分，不要用 \TableRow，直接写内容，
+  % 侧边的框由 overlay 提供，底部的分割线由下一行 \SepLine 提供。
+  \vspace{0.5em}
+  这里是研究内容的正文。由于我们使用的是 overlay 画外框，这里的文本可以像普通 LaTeX 文档一样编写。
 
-    \vspace{0.5em}
+  可以随意使用列表：
+  \begin{itemize}
+    \item 这是一个列表项
+    \item 这是另一个列表项
+  \end{itemize}
 
-    \BlankBetweenTable{3.5em}
+  也可以显示公式：
+  \begin{equation}
+    e^{\pi i} + 1 = 0
+  \end{equation}
 
-    \vspace{0.5em}
+  通过下面这个命令插入一大堆内容
+  \lipsum[8-15]
 
-    你可以使用上面的BlankBetweenTable命令创建一段空白，参数是空白的高度
+  \vspace{0.5em} % 像这个增加垂直间距的命令可能需要多次使用
 
-    这个高度需要自己摸索摸索控制有多高。
+  \SepLine % 结束这一大块内容时，手动画一条分割线
 
-    \vspace{0.5em}
+  % 结尾签字栏
+  \TableRow{X | X}{
+    \centering \textbf{指导教师意见} & \centering \textbf{学院审核意见}
+  }
 
-    \lipsum[1-1]
+  % 最后一栏，高度设大一点
+  \TableRow[4cm]{X | X}{
+    \vspace{2.5cm} & \vspace{2.5cm}
+  }
 
-    % 如果需要参考文献
-    % \bibliographystyle{plain}  % 选择参考文献的格式
-    % \bibliography{references.bib}  % 引用.bib文件
-    % 可以在导言区加入下面两行命令删除“参考文献”标题
-    % \usepackage{natbib}
-    % \renewcommand{\bibsection}{}
+  \vspace{0.5em}
 
-    EndTableEarly命令会提前结束表格，如果不使用，表格会延伸到本页结束。
+  \lipsum[1-1]
 
-    \vspace{0.5em}
+  下面这个命令可以创建这样一条上下边距较为合适的分隔线
 
-    \EndTableEarly
+  \vspaceSepLine
 
-    \vspace{0.5em}
+  上面这个命令可以创建这样一条上下边距较为合适的分隔线
 
-    你也可以在这个表格外面写点东西，但是如果触发换页，只要在TablePage环境中，仍会有页面外框。
+  \vspace{0.5em}
+
+  \BlankBetweenTable{3.5em}
+
+  \vspace{0.5em}
+
+  你可以使用上面的BlankBetweenTable命令创建一段空白，参数是空白的高度
+
+  这个高度需要自己摸索摸索控制有多高。
+
+  \vspace{0.5em}
+
+  \lipsum[1-1]
+
+  % 如果需要参考文献
+  % \bibliographystyle{plain}  % 选择参考文献的格式
+  % \bibliography{references.bib}  % 引用.bib文件
+  % 可以在导言区加入下面两行命令删除“参考文献”标题
+  % \usepackage{natbib}
+  % \renewcommand{\bibsection}{}
+
+  EndTableEarly命令会提前结束表格，如果不使用，表格会延伸到本页结束。
+
+  \vspace{0.5em}
+
+  \EndTableEarly
+
+  \vspace{0.5em}
+
+  你也可以在这个表格外面写点东西，但是如果触发换页，只要在TablePage环境中，仍会有页面外框。
 
 \end{TablePage}
 
