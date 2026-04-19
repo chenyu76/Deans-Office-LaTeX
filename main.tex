@@ -34,6 +34,9 @@
 \newlength{\ContentWidth}
 \setlength{\ContentWidth}{\dimexpr\textwidth+\ContentGap+\ContentGap\relax}
 
+% 标题区高度
+\newlength{\HeadingHeight}
+
 % 定义开关
 \newif\ifShowPageFrame \ShowPageFramefalse
 
@@ -75,14 +78,11 @@
   \nointerlineskip % 防止垂直间距干扰
   \noindent
   \begin{tikzpicture}[overlay, remember picture]
-    % \pgfmathsetmacro{\h}{-1};
-    \pgfmathsetmacro{\m}{\PageMargin};
-    % \path (current page.center);
-    % \pgfgetlastxy{\centerx}{\centery}; % 提取 x 和 y 坐标
+    \pgfmathsetmacro{\m}{\PageMargin}
     \path (current page.west);
-    \pgfgetlastxy{\westx}{\westy};
+    \pgfgetlastxy{\westx}{\westy}
     \path (current page.east);
-    \pgfgetlastxy{\eastx}{\easty};
+    \pgfgetlastxy{\eastx}{\easty}
     \draw ({\westx + \m}, 0) -- ({\eastx - \m}, 0);
   \end{tikzpicture}
   \par
@@ -139,7 +139,6 @@
   \par
   \nointerlineskip
   \noindent
-  \newlength{\HeadingHeight}
   \setlength{\HeadingHeight}{#2}
   \begin{tikzpicture}[overlay, remember picture]
     % 用白色矩形遮盖顶部的全局边框线
@@ -160,10 +159,8 @@
 
     % 补画标题下方的横线
     \draw[line width=\GlobalLineWidth]
-    ([xshift=\PageMargin, yshift=-\PageMargin-\HeadingHeight]current
-    page.north west) --
-    ([xshift=-\PageMargin, yshift=-\PageMargin-\HeadingHeight]current
-    page.north east);
+    ([xshift=\PageMargin, yshift=-\PageMargin-\HeadingHeight]current page.north west) --
+    ([xshift=-\PageMargin, yshift=-\PageMargin-\HeadingHeight]current page.north east);
   \end{tikzpicture}
   \vspace{\dimexpr\HeadingHeight-\ContentGap-1em\relax}
   \par
@@ -183,12 +180,12 @@
   \noindent
   \begin{tikzpicture}[overlay, remember picture]
     \pgfmathsetlengthmacro{\h}{-(#1)}
-    \pgfmathsetmacro{\m}{\PageMargin};
-    \pgfmathsetmacro{\l}{\smallOverlayLength};
+    \pgfmathsetmacro{\m}{\PageMargin}
+    \pgfmathsetmacro{\l}{\smallOverlayLength}
     \path (current page.west);
-    \pgfgetlastxy{\westx}{\westy};
+    \pgfgetlastxy{\westx}{\westy}
     \path (current page.east);
-    \pgfgetlastxy{\eastx}{\easty};
+    \pgfgetlastxy{\eastx}{\easty}
     \fill[white]({\westx + \m - \l}, 0) rectangle ({\eastx - \m + \l}, \h);
     \draw ({\westx + \m}, 0) -- ({\eastx - \m}, 0);
     \draw ({\westx + \m}, \h) -- ({\eastx - \m}, \h);
