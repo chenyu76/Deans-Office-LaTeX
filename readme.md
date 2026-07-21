@@ -13,9 +13,10 @@
 
 在中国高校的毕业设计开题报告、实验报告或行政表格中，经常遇到一种强制性排版要求：全文档必须看起来像在一个巨大的封闭表格中。但是LaTeX传统的 `tabular` 无法跨页，`longtable` 不支持单元格内复杂的图文混排。
 
-本项目的核心思路是做个假的表格：
-1.  视觉欺骗：利用 `TikZ` 和 `atbegshi` 在每一页生成边框，然后再插入分隔线，使其看起来就像是一个表格。
-2.  流式排版：正文区域本质上是普通的文本流，可以随意分段、插入公式、列表，不再受限于表格单元格。
+本repo的思路是做个假的表格：
+
+1.  利用 `TikZ` 和 `atbegshi` 在每一页生成边框，然后再插入分隔线，使其看起来就像是一个表格。
+2.  正文区域本质上是普通的文本流，可以随意分段、插入公式、列表，不再受限于表格单元格。
 
 ## 编译与使用
 
@@ -33,7 +34,7 @@ xelatex main.tex
 
 ### 全局配置
 
-在导言区修改以下参数，即可改变整个文档的几何结构：
+在导言区修改以下参数，即可改变整个文档的结构：
 
 ```latex
 \setlength{\PageMargin}{1in}  % 边框距离纸张边缘的距离
@@ -70,8 +71,8 @@ xelatex main.tex
 % 语法: \TableRow[最小高度]{列格式}{内容...}
 % X = 自动宽度, c = 居中, | = 竖线
 
-\TableRow{ c | X | c | X }{ 
-    \textbf{姓名} & 张三 & \textbf{学号} & 2023001 
+\TableRow{ c | X | c | X }{
+    \textbf{姓名} & 张三 & \textbf{学号} & 2023001
 }
 ```
 
@@ -105,11 +106,56 @@ xelatex main.tex
 \end{LongTextField}
 ```
 
+### 表格间空白 + 文字 (`TextBetweenTable`)
+
+在表格中间创建一段空白并可在其中插入文字内容。
+
+```latex
+% 语法: \begin{TextBetweenTable}[高度] ... \end{TextBetweenTable}
+% 默认高度 5cm
+
+\begin{TextBetweenTable}[4cm]
+    \vfill
+    这里可以写说明文字。
+    \vspace{0.5em}
+\end{TextBetweenTable}
+```
+
+### 侧边栏排版 (`SidebarTablePage` / `SidebarTablePages`)
+
+在表格左侧添加侧边栏，主体内容向右缩进。侧边栏内居中显示标题。
+
+```latex
+% 单页版：内容必须放在一页内。竖线从内容起始位置画到结束位置。
+% 语法: \begin{SidebarTablePage}{侧边栏宽度}{标题内容}
+%       ...主体内容...
+%       \end{SidebarTablePage}
+
+\begin{SidebarTablePage}{2cm}{
+    \centering
+    这里写
+    侧边栏标题
+  }
+  这里是主体内容，必须能在一页内装下。
+\end{SidebarTablePage}
+
+% 多页版：内容可以跨页。每页自动绘制侧边栏竖线。
+% 语法: \begin{SidebarTablePages}{侧边栏宽度}{标题内容}
+%       ...主体内容...
+%       \end{SidebarTablePages}
+
+\begin{SidebarTablePages}{1cm}{
+    \centering
+    跨页侧边栏
+  }
+  \lipsum[1-8] % 会跨越多页，每页都有竖线
+\end{SidebarTablePages}
+```
+
 ### 其他排版控制
 
 - `\vspaceSepLine`: 在画分割线前后自动增加 `0.5em` 的垂直间距，比单纯的 `\SepLine` 更美观。
-- `\EndTableEarly`: 提前结束表格线。如果在页面中间就需要把框封口（例如后面半页留白），请使用此命令。
-- `\BlankBetweenTable{高度}`: 在表格中间“挖”一块白，造成断开的效果。
+- `\BlankBetweenTable{高度}`: 在表格中间"挖"一块白，造成断开的效果。
 
 具体使用示例以及效果请查看[`main.tex`](./main.tex)文件。
 
