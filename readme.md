@@ -79,12 +79,14 @@ xelatex main.tex
 
 ```latex
 % 内容可以跨页。每页自动绘制侧边栏竖线。标题在第一页的位置显示。
-% 语法: \begin{SidebarTable}{侧边栏宽度}{标题}
+% 语法: \begin{SidebarTable}{跨页时的标题}{标题}{侧边栏宽度}
 %       ...主体内容...
 %       \end{SidebarTable}
-\begin{SidebarTable}{1cm}{
+\begin{SidebarTable}[
+    跨页侧边栏（续）
+  ]{
     跨页侧边栏
-  }
+  }{1cm}
   正文内容
 \end{SidebarTable}
 ```

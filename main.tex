@@ -32,7 +32,7 @@
 \newlength{\ContentWidth}
 \setlength{\ContentWidth}{\dimexpr\textwidth+\ContentGap+\ContentGap\relax}
 
-% 计算是单页排版还是多页排版用到奇妙工具
+% 计算是单页排版还是多页排版用到的奇妙工具
 \newcommand{\pageLabel}[1]{\label{page:#1}}
 \makeatletter
 \newcommand{\ifsamePage}[4]{%
@@ -245,13 +245,18 @@
   \par
 }
 
-\NewEnviron{SidebarTable}[2]{%
+\NewEnviron{SidebarTable}[3][]{%
   \stepcounter{SidebarTableLabelCounter}
+  \xdef\@sideMultiTitle{#2}%
+  \def\@tmpa{#1}%
+  \ifx\@tmpa\@empty\else
+  \xdef\@sideMultiTitle{#1}%
+  \fi
   \SepLine{}
   \par
   \nointerlineskip
   \noindent
-  \setlength{\SidebarWidth}{#1}
+  \setlength{\SidebarWidth}{#3}
 
   \ifsamePage{SidebarTableStart\arabic{SidebarTableLabelCounter}}{SidebarTableEnd\arabic{SidebarTableLabelCounter}}{%
     \stepcounter{SidebarEnvCounter}%
@@ -275,14 +280,14 @@
       \pgfmathsetlengthmacro{\barcy}{(\southy - \currenty + \m)/2}
       \draw (\l, 0) -- (\l, {\southy - \currenty + \m});
       \node at (\barcx, \barcy) {
-        \begin{minipage}{#1}
+        \begin{minipage}{#3}
           #2
         \end{minipage}
       };
     \end{tikzpicture}%
     \EnableSidebar%
   }%
-  \begin{adjustwidth}{#1}{0cm}
+  \begin{adjustwidth}{#3}{0cm}
     \pageLabel{SidebarTableStart\arabic{SidebarTableLabelCounter}}
     \BODY
     \pageLabel{SidebarTableEnd\arabic{SidebarTableLabelCounter}}
@@ -306,7 +311,7 @@
       \draw (\l, \startY) -- (\l, \endY);
       \draw ({\westx + \m}, \endY) -- ({\eastx - \m}, \endY);
       \node at (\barcx, \midY) {
-        \begin{minipage}{#1}
+        \begin{minipage}{#3}
           #2
         \end{minipage}
       };
@@ -327,6 +332,13 @@
       \pgfmathsetlengthmacro{\l}{\m + \westx + \w}
       \draw (\l, 0) -- (\l, {\northy + \currenty - \m});
       \draw ({\westx + \m}, 0) -- ({\eastx - \m}, 0);
+      \pgfmathsetlengthmacro{\barcx}{\m + \westx + \w / 2}
+      \pgfmathsetlengthmacro{\barcy}{(\northy + \currenty - \m)/2}
+      \node at (\barcx, \barcy) {
+        \begin{minipage}{#3}
+          #1
+        \end{minipage}
+      };
     \end{tikzpicture}%
   }%
   \par
@@ -347,7 +359,15 @@
     \pgfmathsetlengthmacro{\w}{\SidebarWidth}
     \pgfmathsetlengthmacro{\m}{\PageMargin}
     \pgfmathsetlengthmacro{\l}{\m + \westx + \w}
+    \pgfmathsetlengthmacro{\barcx}{\m + \westx + \w / 2}
+    \pgfmathsetlengthmacro{\barcy}{(\southy + \northy) / 2}
     \draw (\l, {\southy - \currenty + \m}) -- (\l, {\northy + \currenty - \m});
+    \node at (\barcx, \barcy) {
+      \begin{minipage}{\SidebarWidth}
+        \centering
+        \@sideMultiTitle
+      \end{minipage}
+    };
   \end{tikzpicture}%
 }
 
@@ -494,18 +514,26 @@
 
   \vspace{0.5em}
 
-  %                        这个2cm是左侧的宽度
-  \begin{SidebarTable}{2cm}{
+  \begin{SidebarTable}{
       % 前面这个参数是左边的文字内容
       \centering
       类似这样的
       侧边栏
-    }
+    }{2cm}
+    %这个2cm是左侧的宽度
     \lipsum[1-1]
   \end{SidebarTable}
 
-  %                        这个1cm是左侧的宽度
-  \begin{SidebarTable}{1cm}{
+  \begin{SidebarTable}[
+      \centering
+      侧
+
+      边
+
+      栏
+
+      续
+    ]{
       \centering
       多
 
@@ -518,8 +546,8 @@
       边
 
       栏
-    }
-    注意标题只会在第一页的位置显示。
+    }{1cm}
+    可以跨页，跨页时可以使用可选参数指定第二页及其之后的页码的侧边栏的标题。
 
     \lipsum[1-3]
   \end{SidebarTable}
