@@ -13,10 +13,6 @@
 \newlength{\RowHeight}
 \setlength{\RowHeight}{1.2em}     % 默认行高（最小高度）
 
-% FIX: 现在有些命令其实没遵循这个设定。需要修复。
-\def\GlobalLineWidth{0.5pt}            % 外框线宽
-\def\InnerLineWidth{\GlobalLineWidth}  % 内部表格线宽（目前使用相同宽度）
-
 \usepackage[
   margin=\ContentMargin,
   top=\ContentMargin,
@@ -65,7 +61,7 @@
 % 绘制全页外框 (Hook到每页输出)
 \newcommand{\DrawFullPageFrame}{%
   \begin{tikzpicture}[overlay, remember picture]
-    \draw[line width=\GlobalLineWidth]
+    \draw
     ([xshift=\PageMargin, yshift=-\PageMargin]current page.north west)
     rectangle
     ([xshift=-\PageMargin, yshift=\PageMargin]current page.south east);
@@ -84,7 +80,7 @@
     \path (current page.south);
     \pgfgetlastxy{\dummyx}{\southy}
     \pgfmathsetlengthmacro{\m}{\PageMargin}
-    \draw[line width=\GlobalLineWidth]
+    \draw
     ({\westx + \m}, 0) rectangle ({\eastx - \m}, {\southy - \currenty + \m});
   \end{tikzpicture}%
 }
@@ -101,7 +97,7 @@
     \path (current page.north);
     \pgfgetlastxy{\dummyx}{\northy}
     \pgfmathsetlengthmacro{\m}{\PageMargin}
-    \draw[line width=\GlobalLineWidth]
+    \draw
     ({\westx + \m}, 0) rectangle ({\eastx - \m}, {\northy + \currenty - \m});
   \end{tikzpicture}%
 }
@@ -151,7 +147,7 @@
     \pgfgetlastxy{\dummyx}{\startY}
     \path (pageEnd\thePageEnvCounter);
     \pgfgetlastxy{\endX}{\endY}
-    \draw[line width=\GlobalLineWidth]
+    \draw
     ({\westx + \m}, \startY) rectangle ({\eastx - \m}, \endY);
   \end{tikzpicture}%
   \par

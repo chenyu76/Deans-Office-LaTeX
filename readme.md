@@ -32,16 +32,6 @@ xelatex main.tex
 
 ## 核心命令说明
 
-### 全局配置
-
-在导言区修改以下参数，即可改变整个文档的结构：
-
-```latex
-\setlength{\PageMargin}{1in}  % 边框距离纸张边缘的距离
-\setlength{\RowHeight}{1.2em}   % 表格行的最小高度
-\def\GlobalLineWidth{0.5pt}     % 外框粗细
-```
-
 ### 页面外框 (`TablePage` / `TablePages`)
 
 模板提供两种外框环境：
