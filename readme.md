@@ -2,18 +2,18 @@
 
 为什么学校发的各种word模板总喜欢用一个大表格装着？
 
-> 一个用于生成“中国高校教务处风格”文档的 LaTeX 模板。
-> 满足那种全文都在一个大表格里、边框严丝合缝、首页有复杂表头但正文需要跨页的奇妙Word模板的LaTeX排版。
+> 一个用于生成“高校教务处风格”文档的 LaTeX 模板。
+> 满足那种全文都在一个大表格里、有复杂表头、正文需要跨页的奇妙Word模板的LaTeX排版。
 
-## `main.tex`第一页编译效果示例
+## `main.tex`编译效果示例
 
-![main.tex编译效果示例](https://github.com/chenyu76/Deans-Office-LaTeX/blob/d6c5494f1c374f319eed300f4fe3afdeedbfd892/example.webp?raw=true)
+> 示例截图已过时。请自行编译 `main.tex` 查看最新效果。
 
 ## 简介
 
-在中国高校的毕业设计开题报告、实验报告或行政表格中，经常遇到一种强制性排版要求：全文档必须看起来像在一个巨大的封闭表格中。但是LaTeX传统的 `tabular` 无法跨页，`longtable` 不支持单元格内复杂的图文混排。
+在我们学校的毕业设计报告、实验报告或别的什么东西中，经常遇到一种 LaTeX 很难排出来的、像在一个巨大的封闭表格中的Word模板文档需要填写。当我需要输入公式时，总是想使用LaTeX编写一个类似的文档，但LaTeX传统的 `tabular` 无法跨页，`longtable` 不支持单元格内复杂的图文混排。
 
-本repo的思路是做个假的表格：
+本repo的解决思路是做个假的表格：
 
 1.  利用 `TikZ` 和 `atbegshi` 在每一页生成边框，然后再插入分隔线，使其看起来就像是一个表格。
 2.  正文区域本质上是普通的文本流，可以随意分段、插入公式、列表，不再受限于表格单元格。
@@ -42,33 +42,34 @@ xelatex main.tex
 \def\GlobalLineWidth{0.5pt}     % 外框粗细
 ```
 
-### 基础环境 (`TablePage`)
+### 页面外框 (`TablePage` / `TablePages`)
 
-带外框的内容包裹在 `TablePage` 环境中。这个环境会在每一页创建一个包围所有内容的外框线。
+模板提供两种外框环境：
+
+- **`TablePages`**：多页跨页表格。内容可以且必须跨页，每页自动绘制外框。
+- **`TablePage`**：单页闭合框。在当前页内画完整闭合框，内容必须在一页内。
 
 ```latex
+% 多页版本：用于正文较长、会跨页的内容
+\begin{TablePages}
+    {\centering\bfseries\LARGE 标题 \par}
+    \vspace{0.5em}
+    \SepLine
+    正文内容...
+\end{TablePages}
+
+% 单页版本：用于一页内能装下的内容
 \begin{TablePage}
-    % 在这里写的内容会有“假表格”外框
+    这里的内容在当前页画闭合框。
 \end{TablePage}
-```
-
-### 自定义表头 (`\PageTitle`)
-
-生成页首处在表格外的标题。
-
-```latex
-% 语法: \PageTitle{标题内容}{标题占用高度}
-\PageTitle{
-  \centering \huge 本科毕业设计
-}{2.5cm}
 ```
 
 ### 生成表格行 (`\TableRow`)
 
-类似 `tabularx` 的语法，但会自动画好下划线并撑满版心：
+类似 `tabularx` 的语法，但会自动画好上边缘和下边缘的线并撑满版心：
 
 ```latex
-% 语法: \TableRow[最小高度]{列格式}{内容...}
+% 语法: \TableRow{列格式}{内容...}
 % X = 自动宽度, c = 居中, | = 竖线
 
 \TableRow{ c | X | c | X }{
@@ -78,25 +79,25 @@ xelatex main.tex
 
 ### 跨页长文本 (自由流)
 
-对于需要跨页的大段文本，直接写即可。结束后用 `\SepLine` 封口：
+对于需要跨页的大段文本，直接写即可。
 
 ```latex
-\TableRow{l}{\textbf{一、研究内容}} % 标题行
+\begin{TablePages}
+    \TableRow{l}{\textbf{一、研究内容}} % 标题行
 
-这里是正文...可以写很长...可以跨页...
-\begin{itemize}
-  \item 支持列表
-  \item 支持公式 $E=mc^2$
-\end{itemize}
-
-\SepLine % 手动画一条横线结束这一块，或使用 \vspaceSepLine 增加一点垂直间距
+    这里是正文...可以写很长...可以跨页...
+    \begin{itemize}
+      \item 支持列表
+      \item 支持公式 $E=mc^2$
+    \end{itemize}
+\end{TablePages}
 ```
 
 ### 定高文本框 (`LongTextField`)
 
-用于模拟 Word 中那种固定高度的文本框（例如留给手写签字的区域，或者要求“本栏主要填写XX内容”）。
+用于模拟 Word 中那种固定高度的文本框（例如留给手写签字的区域，或者要求"本栏主要填写XX内容"）。
 
-```
+```latex
 % 语法: \begin{LongTextField}[高度] ... \end{LongTextField}
 % 默认高度 5cm
 
@@ -104,21 +105,6 @@ xelatex main.tex
     这里预留了8cm的高度。
     适合打印出来后手写填写。
 \end{LongTextField}
-```
-
-### 表格间空白 + 文字 (`TextBetweenTable`)
-
-在表格中间创建一段空白并可在其中插入文字内容。
-
-```latex
-% 语法: \begin{TextBetweenTable}[高度] ... \end{TextBetweenTable}
-% 默认高度 5cm
-
-\begin{TextBetweenTable}[4cm]
-    \vfill
-    这里可以写说明文字。
-    \vspace{0.5em}
-\end{TextBetweenTable}
 ```
 
 ### 侧边栏排版 (`SidebarTablePage` / `SidebarTablePages`)
@@ -154,18 +140,9 @@ xelatex main.tex
 
 ### 其他排版控制
 
-- `\vspaceSepLine`: 在画分割线前后自动增加 `0.5em` 的垂直间距，比单纯的 `\SepLine` 更美观。
-- `\BlankBetweenTable{高度}`: 在表格中间"挖"一块白，造成断开的效果。
+- `\vspaceSepLine`: 画一条分割线。
 
 具体使用示例以及效果请查看[`main.tex`](./main.tex)文件。
-
-## 原理
-
-本模板使用了 `atbegshi` 宏包的钩子，在 PDF 构建阶段（Shipout）在页面层之上绘制 TikZ 图层。
-
-- 外框：根据 `current page` 节点和 `\PageMargin` 变量计算绝对坐标矩形。
-- 遮盖：`\PageTitle` 和 `\BlankBetweenTable` 本质上是画一个白色的矩形覆盖在黑色边框上，然后再画一条横线连接断开的部分，实现“开口”或“断开”的视觉效果。
-- 横线：`\SepLine` 命令绘制一条宽度等于 `\textwidth` 的线，并微调左右端点以覆盖外框线宽。
 
 ## License
 

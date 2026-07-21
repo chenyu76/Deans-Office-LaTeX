@@ -36,15 +36,12 @@
 \newlength{\ContentWidth}
 \setlength{\ContentWidth}{\dimexpr\textwidth+\ContentGap+\ContentGap\relax}
 
-% 定义开关
-\newif\ifShowPageFrame \ShowPageFramefalse
-
 % 侧边栏
 % 宽度
 \newlength{\SidebarWidth}
 \newcounter{SidebarEnvCounter}
 \def\currentSidebarState{0}% 当前页输出时使用的状态（0=关，1=开）
-\def\pendingSidebarState{0}% 待生效状态
+\def\pendingSidebarState{0}% 用户设定的待生效状态
 \newcommand{\EnableSidebar}{%
   \global\def\pendingSidebarState{1}%
   % 注意：不修改 \currentSidebarState
@@ -54,54 +51,132 @@
   \global\def\currentSidebarState{0}% 强制当前页输出时不画
 }
 
+% 页面外框
+\def\currentPageFrameState{0}% 当前页输出时使用的状态（0=关，1=开）
+\def\pendingPageFrameState{0}% 用户设定的待生效状态
+\newcommand{\EnablePageFrame}{%
+  \global\def\pendingPageFrameState{1}%
+}
+\newcommand{\DisablePageFrame}{%
+  \global\def\pendingPageFrameState{0}%
+  \global\def\currentPageFrameState{0}%
+}
+
 % 绘制全页外框 (Hook到每页输出)
-\newcommand{\DrawFrameOverlay}{%
+\newcommand{\DrawFullPageFrame}{%
   \begin{tikzpicture}[overlay, remember picture]
-    % 计算坐标：左上角 (L, T) 和 右下角 (R, B)
-    % Geometry的坐标原点和TikZ current page有所不同，这里直接用
-    % current page偏移计算最稳健
     \draw[line width=\GlobalLineWidth]
     ([xshift=\PageMargin, yshift=-\PageMargin]current page.north west)
     rectangle
     ([xshift=-\PageMargin, yshift=\PageMargin]current page.south east);
-
-    % 如果需要调试，可以打开下面的网格
-    % \draw[help lines, step=1cm] (current page.north west) grid
-    % (current page.south east);
-  \end{tikzpicture}
+  \end{tikzpicture}%
 }
+
+% 页面外框首半帧（从当前位置向下画到页底，加顶横线）
+\newcommand{\DrawPageFrameHead}{%
+  \begin{tikzpicture}[overlay, remember picture]
+    \path (current page.west);
+    \pgfgetlastxy{\westx}{\dummy};
+    \path (current page.east);
+    \pgfgetlastxy{\eastx}{\dummyy};
+    \path (0,0);
+    \pgfgetlastxy{\dummyx}{\currenty}
+    \path (current page.south);
+    \pgfgetlastxy{\dummyx}{\southy}
+    \pgfmathsetlengthmacro{\m}{\PageMargin}
+    \draw[line width=\GlobalLineWidth]
+    ({\westx + \m}, 0) rectangle ({\eastx - \m}, {\southy - \currenty + \m});
+  \end{tikzpicture}%
+}
+
+% 页面外框末半帧（从当前位置向上画到页顶，加底横线封口）
+\newcommand{\DrawPageFrameTail}{%
+  \begin{tikzpicture}[overlay, remember picture]
+    \path (current page.west);
+    \pgfgetlastxy{\westx}{\dummyy};
+    \path (current page.east);
+    \pgfgetlastxy{\eastx}{\dummmyy};
+    \path (0,0);
+    \pgfgetlastxy{\dummyx}{\currenty}
+    \path (current page.north);
+    \pgfgetlastxy{\dummyx}{\northy}
+    \pgfmathsetlengthmacro{\m}{\PageMargin}
+    \draw[line width=\GlobalLineWidth]
+    ({\westx + \m}, 0) rectangle ({\eastx - \m}, {\northy + \currenty - \m});
+  \end{tikzpicture}%
+}
+
 \AtBeginShipout{%
-  \AtBeginShipoutAddToBox{%
-    % 页面外框
-    \ifShowPageFrame
-    \DrawFrameOverlay{}%
-    \fi
-  }%
-  % 侧边栏
-  % 1. 根据当前状态决定本页是否绘图
+  \ifnum\currentPageFrameState=1
+  \AtBeginShipoutAddToBox{\DrawFullPageFrame}%
+  \fi
   \ifnum\currentSidebarState=1
   \AtBeginShipoutAddToBox{\DrawSidebarVerticalLine}%
   \fi
-  % 2. 本页输出完毕后，将待生效状态“转正”给下一页使用
   \xdef\currentSidebarState{\pendingSidebarState}%
+  \xdef\currentPageFrameState{\pendingPageFrameState}%
 }
 
-% 环境：开启大表模式
-\newenvironment{TablePage}{%
-  \clearpage
-  \ShowPageFrametrue
-  \setlength{\parindent}{0pt} % 消除缩进
-  \setlength{\parskip}{0pt}   % 消除段间距
-}{%
+\newcounter{PageEnvCounter}
+
+% 环境：带框的表格页面（单页）
+% 内容必须放在一页内，画完整闭合框
+\NewEnviron{TablePage}{%
+  \par
+  \noindent
+  \stepcounter{PageEnvCounter}%
+  \setlength{\parindent}{0pt}
+  \setlength{\parskip}{0pt}
   \begin{tikzpicture}[overlay, remember picture]
+    \path (current page.west);
+    \pgfgetlastxy{\westx}{\dummy};
     \path (current page.east);
-    \pgfgetlastxy{\eastx}{\easty};
-    \draw[line width=\GlobalLineWidth]
-    ([xshift=\PageMargin, yshift=-\PageMargin]current page.north west)
-    rectangle
-    ({\eastx - \PageMargin}, 0);
+    \pgfgetlastxy{\eastx}{\dummyy};
+    \coordinate (pageStart\thePageEnvCounter) at (0,0);
   \end{tikzpicture}%
-  \ShowPageFramefalse
+  \par
+  \nointerlineskip
+  \BODY
+  \par
+  \nointerlineskip
+  \noindent
+  \begin{tikzpicture}[overlay, remember picture]
+    \path (current page.west);
+    \pgfgetlastxy{\westx}{\dummyy};
+    \path (current page.east);
+    \pgfgetlastxy{\eastx}{\dummmyy};
+    \pgfmathsetlengthmacro{\m}{\PageMargin}
+    \coordinate (pageEnd\thePageEnvCounter) at (0,0);
+    \path (pageStart\thePageEnvCounter);
+    \pgfgetlastxy{\dummyx}{\startY}
+    \path (pageEnd\thePageEnvCounter);
+    \pgfgetlastxy{\endX}{\endY}
+    \draw[line width=\GlobalLineWidth]
+    ({\westx + \m}, \startY) rectangle ({\eastx - \m}, \endY);
+  \end{tikzpicture}%
+  \par
+  \nointerlineskip
+  \noindent
+}
+
+% 环境：带框的表格页面（多页）
+% 首半帧→中间页全帧→末半帧，三段式
+\NewEnviron{TablePages}{%
+  \par
+  \noindent
+  \setlength{\parindent}{0pt}
+  \setlength{\parskip}{0pt}
+  \DrawPageFrameHead
+  \EnablePageFrame
+  \par
+  \nointerlineskip
+  \BODY
+  \par
+  \nointerlineskip
+  \noindent
+  \DisablePageFrame
+  \DrawPageFrameTail
+  \par
 }
 
 % 命令：绘制横向分割线
@@ -139,6 +214,7 @@
 % 注意：列格式不需要写两边的竖线，系统会自动处理
 \NewDocumentCommand{\TableRow}{O{\RowHeight} m m}{%
   \noindent
+  \SepLine % 一条分割线
   % 使用 tabularx 占满行宽
   % @{} 消除左右默认间距，使表格紧贴版心边缘
   \begin{tabularx}{\textwidth}{@{} #2 @{}}
@@ -162,99 +238,6 @@
   \par
   \nointerlineskip
   \SepLine
-}
-
-% 用于遮住本身已有的框线的一段额外距离
-% 需要比线宽宽
-\newlength{\smallOverlayLength}
-\setlength{\smallOverlayLength}{0.5cm}
-
-\newlength{\HeadingHeight}
-% 命令：自定义表头 (覆盖上边框)
-% 用法: \PageTitle{标题}{标题高度}
-\newcommand{\PageTitle}[2]{%
-  \par
-  \nointerlineskip
-  \noindent
-  \setlength{\HeadingHeight}{#2}
-  \begin{tikzpicture}[overlay, remember picture]
-    % 用白色矩形遮盖顶部的全局边框线
-    \fill[white]
-    ([xshift=\PageMargin+\GlobalLineWidth-\smallOverlayLength,
-    yshift=-\PageMargin+\smallOverlayLength]current page.north west)
-    rectangle
-    ([xshift=-\PageMargin-\GlobalLineWidth+\smallOverlayLength,
-    yshift=-\PageMargin-\HeadingHeight]current page.north east);
-
-    % 绘制标题内容
-    \node[yshift=-1.2cm] at ([xshift=0.5\paperwidth,
-    yshift=-\PageMargin]current page.north west) {
-      \begin{minipage}{\ContentWidth}
-        #1
-      \end{minipage}
-    };
-
-    % 补画标题下方的横线
-    \draw[line width=\GlobalLineWidth]
-    ([xshift=\PageMargin, yshift=-\PageMargin-\HeadingHeight]current
-    page.north west) --
-    ([xshift=-\PageMargin, yshift=-\PageMargin-\HeadingHeight]current
-    page.north east);
-  \end{tikzpicture}
-  \vspace{\dimexpr\HeadingHeight-\ContentGap-1em\relax}
-  \par
-  \nointerlineskip
-}
-
-% 命令：创建一段表格之间的空白
-% 参数为高度
-\newcommand{\BlankBetweenTable}[1]{
-  \par
-  \nointerlineskip
-  \noindent
-  \begin{tikzpicture}[overlay, remember picture]
-    \pgfmathsetlengthmacro{\h}{-(#1)}
-    \pgfmathsetlengthmacro{\m}{\PageMargin};
-    \pgfmathsetlengthmacro{\l}{\smallOverlayLength};
-    \path (current page.west);
-    \pgfgetlastxy{\westx}{\westy};
-    \path (current page.east);
-    \pgfgetlastxy{\eastx}{\easty};
-    \fill[white]({\westx + \m - \l}, 0) rectangle ({\eastx - \m + \l}, \h);
-    \draw ({\westx + \m}, 0) -- ({\eastx - \m}, 0);
-    \draw ({\westx + \m}, \h) -- ({\eastx - \m}, \h);
-  \end{tikzpicture}
-  \par
-  \nointerlineskip
-}
-
-% 环境：创建一段表格之间的空白，并在空白处插入文字
-% 参数为高度
-\NewEnviron{TextBetweenTable}[1][5cm]{%
-  \vspace{0.5em}
-
-  \par
-  \nointerlineskip
-  \noindent
-  \begin{tikzpicture}[overlay, remember picture]
-    \pgfmathsetlengthmacro{\h}{-(#1)}
-    \pgfmathsetlengthmacro{\m}{\PageMargin}
-    \pgfmathsetlengthmacro{\l}{\smallOverlayLength}
-    \path (current page.west);
-    \pgfgetlastxy{\westx}{\westy};
-    \path (current page.east);
-    \pgfgetlastxy{\eastx}{\easty};
-    \fill[white]({\westx + \m - \l}, 0) rectangle ({\eastx - \m + \l}, \h);
-    \draw ({\westx + \m}, 0) -- ({\eastx - \m}, 0);
-    \draw ({\westx + \m}, \h) -- ({\eastx - \m}, \h);
-  \end{tikzpicture}
-  \begin{minipage}[t][#1][t]{\textwidth}
-    \vspace{0.5em} % 顶部留白
-    \BODY
-  \end{minipage}%
-  \par
-  \nointerlineskip
-  \noindent
 }
 
 % 环境：侧边栏的文本（单页）
@@ -371,20 +354,15 @@
 
 \begin{document}
 % 开始带框页面
-\begin{TablePage}
-  % 生成表头
-  \PageTitle{
-    \centering % 居中
-    \huge      % 使用huge大小的字体
-    \bfseries  % 使用粗体
-    本科毕业设计（论文）开题报告 \\[0.5em]
-    \large XX大学 · 2077届
-  }{
-    2.5cm % 标题高度
-  }
+% 生成表头
+\vspace{0.5em}
+{\centering\bfseries\LARGE 本科毕业设计（论文）开题报告 \par}
+\vspace{0.3em}
+{\centering\large XX大学 · 2077届 \par}
+\begin{TablePages}
   % 单行多列信息
   % 语法：\TableRow{列格式}{内容}
-  % X 代表自动宽度，c 代表居中，| 代表竖线
+  % X 代表自动宽度，c 代表居中，l/r 分别是左/右对齐，| 代表竖线
   \TableRow{c|X}{
     \textbf{题\quad\quad 目} & 基于LaTeX的通用表格模板设计与实现
   }
@@ -419,7 +397,6 @@
   \TableRow{l}{ \textbf{二、研究内容：} }
 
   % 对于正文非常长的部分，不要用 \TableRow，直接写内容，
-  % 侧边的框由 overlay 提供，底部的分割线由下一行 \SepLine 提供。
   \vspace{0.5em} % 这个命令创建了 0.5em 高的垂直间距。
   % em是长度单位，1em长度基本与文本中一个汉字的高度相同。
   % 在本模板中，由于我技术有限，我们需要经常使用这个命令控制间距，请留意。
@@ -438,11 +415,10 @@
   \end{equation}
 
   下面这个 \texttt{lipsum} 命令会插入一大堆内容，用于在PDF中展示换页的效果。
-  \lipsum[8-15] % 插入一些假文
+  \lipsum[1-1] % 插入一些假文
 
-  \vspace{0.5em} % 像这个增加垂直间距的命令可能需要多次使用
 
-  \SepLine % 结束这一大块内容时，手动画一条分割线
+  \vspace{0.5em}
 
   % 结尾签字栏
   \TableRow{X | X}{
@@ -456,61 +432,31 @@
 
   \vspace{0.5em}
 
-  \lipsum[1-1]
-
-  下面这个命令可以创建这样一条上下边距较为合适的分隔线
+  可以使用\texttt{\textbackslash{}vspaceSepLine}命令来画一条带间距的分割线：
 
   \vspaceSepLine
 
-  上面这个命令可以创建这样一条上下边距较为合适的分隔线
+  像上面那条。
+
+  \texttt{TablePages} 环境结束前如果是文本需要添加一个
+  \texttt{vspace}，否则底下的边框线会和文本重叠。
 
   \vspace{0.5em}
 
-  \BlankBetweenTable{3.5em}
+\end{TablePages}
 
-  \vspace{0.5em}
-
-  你可以使用上面的\texttt{BlankBetweenTable}命令创建一段空白，参数是空白的高度。
-
-  这个高度需要自己摸索摸索控制有多高，因此实际上不推荐使用这个命令。
-
-  \vspace{0.5em}
-
-  可以使用下面这个环境来比较方便地创建表格之间的内容：
-
-  %                        这个 2cm 参数是内容的高度。
-  \begin{TextBetweenTable}[2cm]
-    这里可以写字！
-  \end{TextBetweenTable}
-
-  \vspace{0.5em}
-
-  \lipsum[1-1]
-
-  % 如果需要参考文献
-  % \bibliographystyle{plain}  % 选择参考文献的格式
-  % \bibliography{references.bib}  % 引用.bib文件
-  % 可以在导言区加入下面两行命令删除“参考文献”标题
-  % \usepackage{natbib}
-  % \renewcommand{\bibsection}{}
-
-\end{TablePage}
-
-TablePage环境外面的内容不带框。
+TablePages环境外面的内容不带框。
 
 后面是更多的一些示例。
 
-\begin{TablePage}
-  % 我们再放一个表头
-  \PageTitle{
-    更多的示例
-  }{
-    2cm % 标题高度
-  }
+\begin{TablePages}
   \vspace{0.5em}
 
-  一个新的 \texttt{TablePage} 环境会强制换页。如果需要同一页两个连着
-  的表格，使用命令 \texttt{TextBetweenTable}伪装。
+  特别注意：
+  \texttt{TablePages} 环境可以且必须跨页。如果需要同一页内的局部框，使用
+  不带 \texttt{s} 的 \texttt{TablePage} 环境。
+
+  \newpage{}
 
   在 \texttt{LongTextField} 里可以用 \texttt{vfill} 让内容靠下：
 
@@ -525,23 +471,6 @@ TablePage环境外面的内容不带框。
     \vspace{0.5em}
   \end{LongTextField}
 
-  \vspace{0.5em}
-
-  \texttt{TextBetweenTable} 里也类似
-
-  \begin{TextBetweenTable}[4cm]
-    \vfill
-
-    你好！
-
-    \vspace{0.5em}
-  \end{TextBetweenTable}
-
-  \vspace{0.5em}
-
-  下面有个表格。
-
-  \vspace{0.5em}
   % 技巧：通过调整 X 的系数 (如 >{\hsize=0.5\hsize}X ) 可以控制列宽比例
   \SepLine{}
   \TableRow{>{\hsize=0.5\hsize}X|X}{
@@ -563,9 +492,9 @@ TablePage环境外面的内容不带框。
     行2 & 内容C
   }
 
-  \newpage
+  \vspace{0.5em}
 
-  我们经常还需要另一种奇怪的排版：
+  我们经常还需要另一种奇怪的排版，像这样的：
 
   \vspace{0.5em}
 
@@ -579,6 +508,8 @@ TablePage环境外面的内容不带框。
     }
     % 环境内的是主文本
     由于我水平有限，生成这个样式的表格分成了两个命令实现：
+
+    （与 \texttt{TablePage}/\texttt{TablePages}类似）
     \begin{itemize}
       \item \texttt{SidebarTablePage}
         这个命令用于生成一个单页的侧边栏的表格内容，如果里面的内容发
@@ -604,9 +535,20 @@ TablePage环境外面的内容不带框。
 
       栏
     }
-    \lipsum[1-5]
+    \lipsum[1-3]
   \end{SidebarTablePages}
 
+\end{TablePages}
+
+最后，如果表格没有发生跨页时，需要将 \texttt{TablePages} 改成
+\texttt{TablePage}，像这样:
+
+\begin{TablePage}
+  \vspace{0.5em}
+
+  这个环境不能跨页使用。其它效果与 \texttt{TablePages}一致。
+
+  \vspace{0.5em}
 \end{TablePage}
 
 \end{document}
