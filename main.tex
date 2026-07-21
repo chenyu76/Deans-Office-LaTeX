@@ -42,8 +42,9 @@
 % 侧边栏
 % 宽度
 \newlength{\SidebarWidth}
+\newcounter{SidebarEnvCounter}
 \def\currentSidebarState{0}% 当前页输出时使用的状态（0=关，1=开）
-\def\pendingSidebarState{0}% 用户设定的待生效状态
+\def\pendingSidebarState{0}% 待生效状态
 \newcommand{\EnableSidebar}{%
   \global\def\pendingSidebarState{1}%
   % 注意：不修改 \currentSidebarState
@@ -256,9 +257,53 @@
   \noindent
 }
 
-% 环境：侧边栏的文本
-% 参数为高度
-\NewEnviron{SidebarTableMultiPages}[2]{%
+% 环境：侧边栏的文本（单页）
+% 参数为宽度，侧边栏标题
+\NewEnviron{SidebarTablePage}[2]{%
+  \par
+  \nointerlineskip
+  \noindent
+  \stepcounter{SidebarEnvCounter}%
+  \setlength{\SidebarWidth}{#1}
+  \begin{tikzpicture}[overlay, remember picture]
+    \path (current page.west);
+    \pgfgetlastxy{\westx}{\dummy};
+    \coordinate (sidebarStart\theSidebarEnvCounter) at (0,0);
+  \end{tikzpicture}%
+  \begin{adjustwidth}{#1}{0cm}
+    \BODY
+  \end{adjustwidth}%
+  \begin{tikzpicture}[overlay, remember picture]
+    \path (current page.west);
+    \pgfgetlastxy{\westx}{\dummyy};
+    \path (current page.east);
+    \pgfgetlastxy{\eastx}{\dummmyy};
+    \coordinate (sidebarEnd\theSidebarEnvCounter) at (0,0);
+    \path (sidebarStart\theSidebarEnvCounter);
+    \pgfgetlastxy{\dummyx}{\startY}
+    \path (sidebarEnd\theSidebarEnvCounter);
+    \pgfgetlastxy{\endX}{\endY}
+    \pgfmathsetlengthmacro{\w}{\SidebarWidth}
+    \pgfmathsetlengthmacro{\m}{\PageMargin}
+    \pgfmathsetlengthmacro{\l}{\m + \westx + \w}
+    \pgfmathsetlengthmacro{\barcx}{\m + \westx + \w / 2}
+    \pgfmathsetlengthmacro{\midY}{(\startY + \endY) / 2}
+    \draw (\l, \startY) -- (\l, \endY);
+    \draw ({\westx + \m}, \endY) -- ({\eastx - \m}, \endY);
+    \node at (\barcx, \midY) {
+      \begin{minipage}{#1}
+        #2
+      \end{minipage}
+    };
+  \end{tikzpicture}%
+  \par
+  \nointerlineskip
+  \noindent
+}
+
+% 环境：侧边栏的文本（多页）
+% 参数为宽度，侧边栏标题
+\NewEnviron{SidebarTablePages}[2]{%
   \par
   \nointerlineskip
   \noindent
@@ -367,7 +412,7 @@
 
     这个区域的高度被强制设为 8cm，适合手写填表。
 
-    如果需要跨页的长文本，请看下一节。
+    如果需要跨页的长文本，无需使用这个环境。
 
   \end{LongTextField}
 
@@ -392,7 +437,7 @@
     e^{\pi i} + 1 = 0
   \end{equation}
 
-  下面这个命令会插入一大堆内容，用于在PDF中展示换页的效果。
+  下面这个 \texttt{lipsum} 命令会插入一大堆内容，用于在PDF中展示换页的效果。
   \lipsum[8-15] % 插入一些假文
 
   \vspace{0.5em} % 像这个增加垂直间距的命令可能需要多次使用
@@ -433,8 +478,9 @@
 
   可以使用下面这个环境来比较方便地创建表格之间的内容：
 
+  %                        这个 2cm 参数是内容的高度。
   \begin{TextBetweenTable}[2cm]
-    这个 2cm 参数是内容的高度。
+    这里可以写字！
   \end{TextBetweenTable}
 
   \vspace{0.5em}
@@ -504,16 +550,62 @@ TablePage环境外面的内容不带框。
   \TableRow{X|>{\hsize=0.5\hsize}X}{
     B & E
   }
+  \TableRow{X|>{\hsize=0.5\hsize}X}{
+    B1 & E1
+  }
   \TableRow{>{\hsize=0.5\hsize}X|X}{
     C & F
   }
+  \TableRow{l|X|X}{
+    行1 & 内容A & 内容B
+  }
+  \TableRow{l|X}{
+    行2 & 内容C
+  }
 
-  \begin{SidebarTableMultiPages}{2cm}{
+  \newpage
+
+  我们经常还需要另一种奇怪的排版：
+
+  \vspace{0.5em}
+
+  \SepLine{}
+  %                        这个2cm是左侧的宽度
+  \begin{SidebarTablePage}{2cm}{
+      % 前面这个参数是左边的文字内容
       \centering
-      名称
+      类似这样的
+      侧边栏
     }
-    \lipsum[1-10]
-  \end{SidebarTableMultiPages}
+    % 环境内的是主文本
+    由于我水平有限，生成这个样式的表格分成了两个命令实现：
+    \begin{itemize}
+      \item \texttt{SidebarTablePage}
+        这个命令用于生成一个单页的侧边栏的表格内容，如果里面的内容发
+        生跨页，格式就会错乱。
+      \item \texttt{SidebarTablePages}
+        这个命令用于生成一个多页的侧边栏的表格内容，如果里面的内容
+        只有一页，格式就会错乱。
+    \end{itemize}
+  \end{SidebarTablePage}
+
+  %                        这个1cm是左侧的宽度
+  \begin{SidebarTablePages}{1cm}{
+      \centering
+      多
+
+      页
+
+      的
+
+      侧
+
+      边
+
+      栏
+    }
+    \lipsum[1-5]
+  \end{SidebarTablePages}
 
 \end{TablePage}
 
