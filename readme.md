@@ -7,7 +7,7 @@
 
 ## `main.tex`第一页编译效果示例
 
-![main.tex编译效果示例](./example.webp)
+![main.tex编译效果示例](https://github.com/chenyu76/Deans-Office-LaTeX/blob/d6c5494f1c374f319eed300f4fe3afdeedbfd892/example.webp?raw=true)
 
 ## 简介
 
