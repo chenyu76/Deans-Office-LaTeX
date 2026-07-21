@@ -7,15 +7,15 @@
 
 ## 编译效果示例
 
-[在这里下载查看PDF]
+[在这里下载查看PDF](https://github.com/user-attachments/files/30235446/main.pdf)
 
-![PDF page 1]()
+<img width="595" height="842" alt="Page 1" src="https://github.com/user-attachments/assets/3d369d2e-323e-4d40-ba00-58b56ad23a45" />
 
-![PDF page 2]()
+<img width="595" height="842" alt="Page 2" src="https://github.com/user-attachments/assets/f6c4465e-ad3f-4035-8462-82a4d69f39b5" />
 
-![PDF page 3]()
+<img width="595" height="842" alt="Page 3" src="https://github.com/user-attachments/assets/3e78c110-35a5-484c-8c22-b4a0e968b368" />
 
-![PDF page 4]()
+<img width="595" height="842" alt="Page 4" src="https://github.com/user-attachments/assets/a9ebf1a1-d041-4025-9208-5749cfaf5504" />
 
 ## 简介
 
