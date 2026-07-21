@@ -32,6 +32,27 @@
 \newlength{\ContentWidth}
 \setlength{\ContentWidth}{\dimexpr\textwidth+\ContentGap+\ContentGap\relax}
 
+% 计算是单页排版还是多页排版用到奇妙工具
+\newcommand{\pageLabel}[1]{\label{page:#1}}
+\makeatletter
+\newcommand{\ifsamePage}[4]{%
+  \edef\@A{r@page:#1}%
+  \edef\@B{r@page:#2}%
+  \ifcsname\@A\endcsname
+  \ifcsname\@B\endcsname
+  \def\@extract##1##2\@nil{##2}%
+  \expandafter\edef\expandafter\@pA\expandafter
+  {\expandafter\expandafter\expandafter\@extract\csname\@A\endcsname\@nil}%
+  \expandafter\edef\expandafter\@pB\expandafter
+  {\expandafter\expandafter\expandafter\@extract\csname\@B\endcsname\@nil}%
+  \ifx\@pA\@pB #3\else #4\fi
+  \else #4\fi
+  \else #4\fi
+}
+\makeatother
+\newcounter{TablePageLabelCounter}
+\newcounter{SidebarTableLabelCounter}
+
 % 侧边栏
 % 宽度
 \newlength{\SidebarWidth}
@@ -236,14 +257,104 @@
   \SepLine
 }
 
+% SidebarTableLabelCounter
+\NewEnviron{SidebarTable}[2]{%
+  \stepcounter{SidebarTableLabelCounter}
+  \SepLine{}
+  \par
+  \nointerlineskip
+  \noindent
+  \setlength{\SidebarWidth}{#1}
+
+  \ifsamePage{SidebarTableStart\arabic{SidebarTableLabelCounter}}{SidebarTableEnd\arabic{SidebarTableLabelCounter}}{%
+    \stepcounter{SidebarEnvCounter}%
+    \begin{tikzpicture}[overlay, remember picture]
+      \path (current page.west);
+      \pgfgetlastxy{\westx}{\dummy};
+      \coordinate (sidebarStart\theSidebarEnvCounter) at (0,0);
+    \end{tikzpicture}%
+  }{%
+    \begin{tikzpicture}[overlay, remember picture]
+      \path (current page.west);
+      \pgfgetlastxy{\westx}{\dummy};
+      \path (0,0);
+      \pgfgetlastxy{\dummyx}{\currenty}
+      \path (current page.south);
+      \pgfgetlastxy{\dummyx}{\southy}
+      \pgfmathsetlengthmacro{\w}{\SidebarWidth}
+      \pgfmathsetlengthmacro{\m}{\PageMargin}
+      \pgfmathsetlengthmacro{\l}{\m + \westx + \w}
+      \pgfmathsetlengthmacro{\barcx}{\m + \westx + \w / 2}
+      \pgfmathsetlengthmacro{\barcy}{(\southy - \currenty + \m)/2}
+      \draw (\l, 0) -- (\l, {\southy - \currenty + \m});
+      \node at (\barcx, \barcy) {
+        \begin{minipage}{#1}
+          #2
+        \end{minipage}
+      };
+    \end{tikzpicture}%
+    \EnableSidebar%
+  }%
+  \begin{adjustwidth}{#1}{0cm}
+    \pageLabel{SidebarTableStart\arabic{SidebarTableLabelCounter}}
+    \BODY
+    \pageLabel{SidebarTableEnd\arabic{SidebarTableLabelCounter}}
+  \end{adjustwidth}%
+  \ifsamePage{SidebarTableStart\arabic{SidebarTableLabelCounter}}{SidebarTableEnd\arabic{SidebarTableLabelCounter}}{%
+    \begin{tikzpicture}[overlay, remember picture]
+      \path (current page.west);
+      \pgfgetlastxy{\westx}{\dummyy};
+      \path (current page.east);
+      \pgfgetlastxy{\eastx}{\dummmyy};
+      \coordinate (sidebarEnd\theSidebarEnvCounter) at (0,0);
+      \path (sidebarStart\theSidebarEnvCounter);
+      \pgfgetlastxy{\dummyx}{\startY}
+      \path (sidebarEnd\theSidebarEnvCounter);
+      \pgfgetlastxy{\endX}{\endY}
+      \pgfmathsetlengthmacro{\w}{\SidebarWidth}
+      \pgfmathsetlengthmacro{\m}{\PageMargin}
+      \pgfmathsetlengthmacro{\l}{\m + \westx + \w}
+      \pgfmathsetlengthmacro{\barcx}{\m + \westx + \w / 2}
+      \pgfmathsetlengthmacro{\midY}{(\startY + \endY) / 2}
+      \draw (\l, \startY) -- (\l, \endY);
+      \draw ({\westx + \m}, \endY) -- ({\eastx - \m}, \endY);
+      \node at (\barcx, \midY) {
+        \begin{minipage}{#1}
+          #2
+        \end{minipage}
+      };
+    \end{tikzpicture}%
+  }{%
+    \DisableSidebar%
+    \begin{tikzpicture}[overlay, remember picture]
+      \path (current page.west);
+      \pgfgetlastxy{\westx}{\dummyy};
+      \path (0,0);
+      \pgfgetlastxy{\dummyx}{\currenty}
+      \path (current page.north);
+      \pgfgetlastxy{\dummyx}{\northy}
+      \path (current page.east);
+      \pgfgetlastxy{\eastx}{\dummmyy};
+      \pgfmathsetlengthmacro{\w}{\SidebarWidth}
+      \pgfmathsetlengthmacro{\m}{\PageMargin}
+      \pgfmathsetlengthmacro{\l}{\m + \westx + \w}
+      \draw (\l, 0) -- (\l, {\northy + \currenty - \m});
+      \draw ({\westx + \m}, 0) -- ({\eastx - \m}, 0);
+    \end{tikzpicture}%
+  }%
+  \par
+  \nointerlineskip
+  \noindent
+}
+
 % 环境：侧边栏的文本（单页）
 % 参数为宽度，侧边栏标题
 \NewEnviron{SidebarTablePage}[2]{%
   \par
   \nointerlineskip
   \noindent
-  \stepcounter{SidebarEnvCounter}%
   \setlength{\SidebarWidth}{#1}
+  \stepcounter{SidebarEnvCounter}%
   \begin{tikzpicture}[overlay, remember picture]
     \path (current page.west);
     \pgfgetlastxy{\westx}{\dummy};
@@ -413,7 +524,6 @@
   下面这个 \texttt{lipsum} 命令会插入一大堆内容，用于在PDF中展示换页的效果。
   \lipsum[1-1] % 插入一些假文
 
-
   \vspace{0.5em}
 
   % 结尾签字栏
@@ -496,28 +606,17 @@ TablePages环境外面的内容不带框。
 
   \SepLine{}
   %                        这个2cm是左侧的宽度
-  \begin{SidebarTablePage}{2cm}{
+  \begin{SidebarTable}{2cm}{
       % 前面这个参数是左边的文字内容
       \centering
       类似这样的
       侧边栏
     }
-    % 环境内的是主文本
-    由于我水平有限，生成这个样式的表格分成了两个命令实现：
-
-    （与 \texttt{TablePage}/\texttt{TablePages}类似）
-    \begin{itemize}
-      \item \texttt{SidebarTablePage}
-        这个命令用于生成一个单页的侧边栏的表格内容，如果里面的内容发
-        生跨页，格式就会错乱。
-      \item \texttt{SidebarTablePages}
-        这个命令用于生成一个多页的侧边栏的表格内容，如果里面的内容
-        只有一页，格式就会错乱。
-    \end{itemize}
-  \end{SidebarTablePage}
+    \lipsum[1-1]
+  \end{SidebarTable}
 
   %                        这个1cm是左侧的宽度
-  \begin{SidebarTablePages}{1cm}{
+  \begin{SidebarTable}{1cm}{
       \centering
       多
 
@@ -532,7 +631,7 @@ TablePages环境外面的内容不带框。
       栏
     }
     \lipsum[1-3]
-  \end{SidebarTablePages}
+  \end{SidebarTable}
 
 \end{TablePages}
 
@@ -546,5 +645,15 @@ TablePages环境外面的内容不带框。
 
   \vspace{0.5em}
 \end{TablePage}
+
+\begin{TablePages}
+  \begin{SidebarTable}{1cm}{
+      \centering
+      智能侧边栏测试
+    }
+
+    \lipsum[1-10]
+  \end{SidebarTable}
+\end{TablePages}
 
 \end{document}
