@@ -28,30 +28,22 @@
 xelatex main.tex
 ```
 
-**注意**：由于涉及到 `TikZ` 的绝对定位绘制，页面布局或内容发生更改时，通常需要**编译两次**，边框线才能显示在正确的位置。
+**注意**：由于文档涉及到 `TikZ` 的绝对定位绘制，页面布局或内容发生更改时，可能需要**编译三次**，边框线才能显示在正确的位置。
 
 ## 核心命令说明
 
-### 页面外框 (`TablePage` / `TablePages`)
+### 页面外框 (`TableFrame`)
 
-模板提供两种外框环境：
-
-- **`TablePages`**：多页跨页表格。内容可以且必须跨页，每页自动绘制外框。
-- **`TablePage`**：单页闭合框。在当前页内画完整闭合框，内容必须在一页内。
+给正文内容每页都加上框。
 
 ```latex
-% 多页版本：用于正文较长、会跨页的内容
 \begin{TablePages}
-    {\centering\bfseries\LARGE 标题 \par}
-    \vspace{0.5em}
-    \SepLine
-    正文内容...
+    这里是正文...可以写很长...可以跨页...
+    \begin{itemize}
+      \item 支持列表
+      \item 支持公式 $E=mc^2$
+    \end{itemize}
 \end{TablePages}
-
-% 单页版本：用于一页内能装下的内容
-\begin{TablePage}
-    这里的内容在当前页画闭合框。
-\end{TablePage}
 ```
 
 ### 生成表格行 (`\TableRow`)
@@ -65,22 +57,6 @@ xelatex main.tex
 \TableRow{ c | X | c | X }{
     \textbf{姓名} & 张三 & \textbf{学号} & 2023001
 }
-```
-
-### 跨页长文本 (自由流)
-
-对于需要跨页的大段文本，直接写即可。
-
-```latex
-\begin{TablePages}
-    \TableRow{l}{\textbf{一、研究内容}} % 标题行
-
-    这里是正文...可以写很长...可以跨页...
-    \begin{itemize}
-      \item 支持列表
-      \item 支持公式 $E=mc^2$
-    \end{itemize}
-\end{TablePages}
 ```
 
 ### 定高文本框 (`LongTextField`)
@@ -97,35 +73,20 @@ xelatex main.tex
 \end{LongTextField}
 ```
 
-### 侧边栏排版 (`SidebarTablePage` / `SidebarTablePages`)
+### 侧边栏排版 (`SidebarTable` )
 
 在表格左侧添加侧边栏，主体内容向右缩进。侧边栏内居中显示标题。
 
 ```latex
-% 单页版：内容必须放在一页内。竖线从内容起始位置画到结束位置。
-% 语法: \begin{SidebarTablePage}{侧边栏宽度}{标题内容}
+% 内容可以跨页。每页自动绘制侧边栏竖线。标题在第一页的位置显示。
+% 语法: \begin{SidebarTable}{侧边栏宽度}{标题}
 %       ...主体内容...
-%       \end{SidebarTablePage}
-
-\begin{SidebarTablePage}{2cm}{
-    \centering
-    这里写
-    侧边栏标题
-  }
-  这里是主体内容，必须能在一页内装下。
-\end{SidebarTablePage}
-
-% 多页版：内容可以跨页。每页自动绘制侧边栏竖线。
-% 语法: \begin{SidebarTablePages}{侧边栏宽度}{标题内容}
-%       ...主体内容...
-%       \end{SidebarTablePages}
-
-\begin{SidebarTablePages}{1cm}{
-    \centering
+%       \end{SidebarTable}
+\begin{SidebarTable}{1cm}{
     跨页侧边栏
   }
-  \lipsum[1-8] % 会跨越多页，每页都有竖线
-\end{SidebarTablePages}
+  正文内容
+\end{SidebarTable}
 ```
 
 ### 其他排版控制

@@ -50,8 +50,8 @@
   \else #4\fi
 }
 \makeatother
-\newcounter{TablePageLabelCounter}
 \newcounter{SidebarTableLabelCounter}
+\newcounter{TableFrameLabelCounter}
 
 % 侧边栏
 % 宽度
@@ -90,6 +90,7 @@
 }
 
 % 页面外框首半帧（从当前位置向下画到页底，加顶横线）
+\newcounter{PageEnvCounter}
 \newcommand{\DrawPageFrameHead}{%
   \begin{tikzpicture}[overlay, remember picture]
     \path (current page.west);
@@ -132,68 +133,6 @@
   \fi
   \xdef\currentSidebarState{\pendingSidebarState}%
   \xdef\currentPageFrameState{\pendingPageFrameState}%
-}
-
-\newcounter{PageEnvCounter}
-
-% 环境：带框的表格页面（单页）
-% 内容必须放在一页内，画完整闭合框
-\NewEnviron{TablePage}{%
-  \par
-  \noindent
-  \stepcounter{PageEnvCounter}%
-  \setlength{\parindent}{0pt}
-  \setlength{\parskip}{0pt}
-  \begin{tikzpicture}[overlay, remember picture]
-    \path (current page.west);
-    \pgfgetlastxy{\westx}{\dummy};
-    \path (current page.east);
-    \pgfgetlastxy{\eastx}{\dummyy};
-    \coordinate (pageStart\thePageEnvCounter) at (0,0);
-  \end{tikzpicture}%
-  \par
-  \nointerlineskip
-  \BODY
-  \par
-  \nointerlineskip
-  \noindent
-  \begin{tikzpicture}[overlay, remember picture]
-    \path (current page.west);
-    \pgfgetlastxy{\westx}{\dummyy};
-    \path (current page.east);
-    \pgfgetlastxy{\eastx}{\dummmyy};
-    \pgfmathsetlengthmacro{\m}{\PageMargin}
-    \coordinate (pageEnd\thePageEnvCounter) at (0,0);
-    \path (pageStart\thePageEnvCounter);
-    \pgfgetlastxy{\dummyx}{\startY}
-    \path (pageEnd\thePageEnvCounter);
-    \pgfgetlastxy{\endX}{\endY}
-    \draw
-    ({\westx + \m}, \startY) rectangle ({\eastx - \m}, \endY);
-  \end{tikzpicture}%
-  \par
-  \nointerlineskip
-  \noindent
-}
-
-% 环境：带框的表格页面（多页）
-% 首半帧→中间页全帧→末半帧，三段式
-\NewEnviron{TablePages}{%
-  \par
-  \noindent
-  \setlength{\parindent}{0pt}
-  \setlength{\parskip}{0pt}
-  \DrawPageFrameHead
-  \EnablePageFrame
-  \par
-  \nointerlineskip
-  \BODY
-  \par
-  \nointerlineskip
-  \noindent
-  \DisablePageFrame
-  \DrawPageFrameTail
-  \par
 }
 
 % 命令：绘制横向分割线
@@ -257,7 +196,55 @@
   \SepLine
 }
 
-% SidebarTableLabelCounter
+\NewEnviron{TableFrame}{%
+  \stepcounter{TableFrameLabelCounter}
+  \par
+  \noindent
+  \setlength{\parindent}{0pt}
+  \setlength{\parskip}{0pt}
+  \ifsamePage{TableFrameStart\arabic{TableFrameLabelCounter}}{TableFrameEnd\arabic{TableFrameLabelCounter}}{%
+    \stepcounter{PageEnvCounter}%
+    \begin{tikzpicture}[overlay, remember picture]
+      \path (current page.west);
+      \pgfgetlastxy{\westx}{\dummy};
+      \path (current page.east);
+      \pgfgetlastxy{\eastx}{\dummyy};
+      \coordinate (pageStart\thePageEnvCounter) at (0,0);
+    \end{tikzpicture}%
+  }{%
+    \DrawPageFrameHead
+    \EnablePageFrame
+  }%
+  \par
+  \nointerlineskip
+  \pageLabel{TableFrameStart\arabic{TableFrameLabelCounter}}
+  \BODY
+  \pageLabel{TableFrameEnd\arabic{TableFrameLabelCounter}}
+  \par
+  \nointerlineskip
+  \noindent
+  \ifsamePage{TableFrameStart\arabic{TableFrameLabelCounter}}{TableFrameEnd\arabic{TableFrameLabelCounter}}{%
+    \begin{tikzpicture}[overlay, remember picture]
+      \path (current page.west);
+      \pgfgetlastxy{\westx}{\dummyy};
+      \path (current page.east);
+      \pgfgetlastxy{\eastx}{\dummmyy};
+      \pgfmathsetlengthmacro{\m}{\PageMargin}
+      \coordinate (pageEnd\thePageEnvCounter) at (0,0);
+      \path (pageStart\thePageEnvCounter);
+      \pgfgetlastxy{\dummyx}{\startY}
+      \path (pageEnd\thePageEnvCounter);
+      \pgfgetlastxy{\endX}{\endY}
+      \draw
+      ({\westx + \m}, \startY) rectangle ({\eastx - \m}, \endY);
+    \end{tikzpicture}%
+  }{%
+    \DisablePageFrame
+    \DrawPageFrameTail
+  }%
+  \par
+}
+
 \NewEnviron{SidebarTable}[2]{%
   \stepcounter{SidebarTableLabelCounter}
   \SepLine{}
@@ -347,101 +334,6 @@
   \noindent
 }
 
-% 环境：侧边栏的文本（单页）
-% 参数为宽度，侧边栏标题
-\NewEnviron{SidebarTablePage}[2]{%
-  \par
-  \nointerlineskip
-  \noindent
-  \setlength{\SidebarWidth}{#1}
-  \stepcounter{SidebarEnvCounter}%
-  \begin{tikzpicture}[overlay, remember picture]
-    \path (current page.west);
-    \pgfgetlastxy{\westx}{\dummy};
-    \coordinate (sidebarStart\theSidebarEnvCounter) at (0,0);
-  \end{tikzpicture}%
-  \begin{adjustwidth}{#1}{0cm}
-    \BODY
-  \end{adjustwidth}%
-  \begin{tikzpicture}[overlay, remember picture]
-    \path (current page.west);
-    \pgfgetlastxy{\westx}{\dummyy};
-    \path (current page.east);
-    \pgfgetlastxy{\eastx}{\dummmyy};
-    \coordinate (sidebarEnd\theSidebarEnvCounter) at (0,0);
-    \path (sidebarStart\theSidebarEnvCounter);
-    \pgfgetlastxy{\dummyx}{\startY}
-    \path (sidebarEnd\theSidebarEnvCounter);
-    \pgfgetlastxy{\endX}{\endY}
-    \pgfmathsetlengthmacro{\w}{\SidebarWidth}
-    \pgfmathsetlengthmacro{\m}{\PageMargin}
-    \pgfmathsetlengthmacro{\l}{\m + \westx + \w}
-    \pgfmathsetlengthmacro{\barcx}{\m + \westx + \w / 2}
-    \pgfmathsetlengthmacro{\midY}{(\startY + \endY) / 2}
-    \draw (\l, \startY) -- (\l, \endY);
-    \draw ({\westx + \m}, \endY) -- ({\eastx - \m}, \endY);
-    \node at (\barcx, \midY) {
-      \begin{minipage}{#1}
-        #2
-      \end{minipage}
-    };
-  \end{tikzpicture}%
-  \par
-  \nointerlineskip
-  \noindent
-}
-
-% 环境：侧边栏的文本（多页）
-% 参数为宽度，侧边栏标题
-\NewEnviron{SidebarTablePages}[2]{%
-  \par
-  \nointerlineskip
-  \noindent
-  \setlength{\SidebarWidth}{#1}
-  \begin{tikzpicture}[overlay, remember picture]
-    \path (current page.west);
-    \pgfgetlastxy{\westx}{\dummy};
-    \path (0,0);
-    \pgfgetlastxy{\dummyx}{\currenty}
-    \path (current page.south);
-    \pgfgetlastxy{\dummyx}{\southy}
-    \pgfmathsetlengthmacro{\w}{\SidebarWidth}
-    \pgfmathsetlengthmacro{\m}{\PageMargin}
-    \pgfmathsetlengthmacro{\l}{\m + \westx + \w}
-    \pgfmathsetlengthmacro{\barcx}{\m + \westx + \w / 2}
-    \pgfmathsetlengthmacro{\barcy}{(\southy - \currenty + \m)/2}
-    \draw (\l, 0) -- (\l, {\southy - \currenty + \m});
-    \node at (\barcx, \barcy) {
-      \begin{minipage}{#1}
-        #2
-      \end{minipage}
-    };
-  \end{tikzpicture}%
-  \EnableSidebar%
-  \begin{adjustwidth}{#1}{0cm}
-    \BODY
-  \end{adjustwidth}%
-  \DisableSidebar%
-  \begin{tikzpicture}[overlay, remember picture]
-    \path (current page.west);
-    \pgfgetlastxy{\westx}{\dummyy};
-    \path (0,0);
-    \pgfgetlastxy{\dummyx}{\currenty}
-    \path (current page.north);
-    \pgfgetlastxy{\dummyx}{\northy}
-    \path (current page.east);
-    \pgfgetlastxy{\eastx}{\dummmyy};
-    \pgfmathsetlengthmacro{\w}{\SidebarWidth}
-    \pgfmathsetlengthmacro{\m}{\PageMargin}
-    \pgfmathsetlengthmacro{\l}{\m + \westx + \w}
-    \draw (\l, 0) -- (\l, {\northy + \currenty - \m});
-    \draw ({\westx + \m}, 0) -- ({\eastx - \m}, 0);
-  \end{tikzpicture}%
-  \par
-  \nointerlineskip
-  \noindent
-}
-
 \newcommand{\DrawSidebarVerticalLine}{
   \begin{tikzpicture}[overlay, remember picture]
     \path (current page.west);
@@ -459,14 +351,19 @@
   \end{tikzpicture}%
 }
 
+%========================%
+%                        %
+%      文档正文开始      %
+%                        %
+%========================%
 \begin{document}
-% 开始带框页面
-% 生成表头
+% 表头
 \vspace{0.5em}
 {\centering\bfseries\LARGE 本科毕业设计（论文）开题报告 \par}
 \vspace{0.3em}
 {\centering\large XX大学 · 2077届 \par}
-\begin{TablePages}
+% 开始带框页面
+\begin{TableFrame}
   % 单行多列信息
   % 语法：\TableRow{列格式}{内容}
   % X 代表自动宽度，c 代表居中，l/r 分别是左/右对齐，| 代表竖线
@@ -497,13 +394,13 @@
 
     这个区域的高度被强制设为 8cm，适合手写填表。
 
-    如果需要跨页的长文本，无需使用这个环境。
+    如果需要跨页的长文本，无需且不能使用这个环境。
 
   \end{LongTextField}
 
   \TableRow{l}{ \textbf{二、研究内容：} }
 
-  % 对于正文非常长的部分，不要用 \TableRow，直接写内容，
+  % 对于正文非常长的部分，不用 \TableRow，直接写内容，
   \vspace{0.5em} % 这个命令创建了 0.5em 高的垂直间距。
   % em是长度单位，1em长度基本与文本中一个汉字的高度相同。
   % 在本模板中，由于我技术有限，我们需要经常使用这个命令控制间距，请留意。
@@ -530,8 +427,7 @@
   \TableRow{X | X}{
     \centering \textbf{指导教师意见} & \centering \textbf{学院审核意见}
   }
-
-  % 最后一栏，高度设大一点
+  % 空白栏，使用vspace 设置高度
   \TableRow[4cm]{X | X}{
     \vspace{2.5cm} & \vspace{2.5cm}
   }
@@ -544,25 +440,19 @@
 
   像上面那条。
 
-  \texttt{TablePages} 环境结束前如果是文本需要添加一个
+  \texttt{TableFrame} 环境结束前如果是文本需要添加一个
   \texttt{vspace}，否则底下的边框线会和文本重叠。
 
   \vspace{0.5em}
 
-\end{TablePages}
+\end{TableFrame}
 
-TablePages环境外面的内容不带框。
+\texttt{TableFrame}环境外面的内容不带框。
 
 后面是更多的一些示例。
 
-\begin{TablePages}
+\begin{TableFrame}
   \vspace{0.5em}
-
-  特别注意：
-  \texttt{TablePages} 环境可以且必须跨页。如果需要同一页内的局部框，使用
-  不带 \texttt{s} 的 \texttt{TablePage} 环境。
-
-  \newpage{}
 
   在 \texttt{LongTextField} 里可以用 \texttt{vfill} 让内容靠下：
 
@@ -579,17 +469,17 @@ TablePages环境外面的内容不带框。
 
   % 技巧：通过调整 X 的系数 (如 >{\hsize=0.5\hsize}X ) 可以控制列宽比例
   \SepLine{}
-  \TableRow{>{\hsize=0.5\hsize}X|X}{
-    A & D
-  }
   \TableRow{X|>{\hsize=0.5\hsize}X}{
     B & E
   }
-  \TableRow{X|>{\hsize=0.5\hsize}X}{
-    B1 & E1
+  \TableRow{>{\hsize=0.5\hsize}X|X}{
+    A & G：由于我技术有限
   }
   \TableRow{>{\hsize=0.5\hsize}X|X}{
-    C & F
+    A & D：这时换页会有一些小瑕疵
+  }
+  \TableRow{>{\hsize=0.5\hsize}X|X}{
+    C & F：尽量避免多个表格行跨页出现
   }
   \TableRow{l|X|X}{
     行1 & 内容A & 内容B
@@ -604,7 +494,6 @@ TablePages环境外面的内容不带框。
 
   \vspace{0.5em}
 
-  \SepLine{}
   %                        这个2cm是左侧的宽度
   \begin{SidebarTable}{2cm}{
       % 前面这个参数是左边的文字内容
@@ -630,30 +519,11 @@ TablePages环境外面的内容不带框。
 
       栏
     }
+    注意标题只会在第一页的位置显示。
+
     \lipsum[1-3]
   \end{SidebarTable}
 
-\end{TablePages}
-
-最后，如果表格没有发生跨页时，需要将 \texttt{TablePages} 改成
-\texttt{TablePage}，像这样:
-
-\begin{TablePage}
-  \vspace{0.5em}
-
-  这个环境不能跨页使用。其它效果与 \texttt{TablePages}一致。
-
-  \vspace{0.5em}
-\end{TablePage}
-
-\begin{TablePages}
-  \begin{SidebarTable}{1cm}{
-      \centering
-      智能侧边栏测试
-    }
-
-    \lipsum[1-10]
-  \end{SidebarTable}
-\end{TablePages}
+\end{TableFrame}
 
 \end{document}
