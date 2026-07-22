@@ -67,20 +67,6 @@ xelatex main.tex
 }
 ```
 
-### 定高文本框 (`LongTextField`)
-
-用于模拟 Word 中那种固定高度的文本框（例如留给手写签字的区域，或者要求"本栏主要填写XX内容"）。
-
-```latex
-% 语法: \begin{LongTextField}[高度] ... \end{LongTextField}
-% 默认高度 5cm
-
-\begin{LongTextField}[8cm]
-    这里预留了8cm的高度。
-    适合打印出来后手写填写。
-\end{LongTextField}
-```
-
 ### 侧边栏排版 (`SidebarTable` )
 
 在表格左侧添加侧边栏，主体内容向右缩进。侧边栏内居中显示标题。
@@ -99,9 +85,15 @@ xelatex main.tex
 \end{SidebarTable}
 ```
 
-### 其他排版控制
+### 分割线（`\vspaceSepLine`)
 
-- `\vspaceSepLine`: 画一条分割线。
+画一条分割线。
+
+```latex
+\vspaceSepLine
+```
+
+---
 
 具体使用示例以及效果请查看[`main.tex`](./main.tex)文件。
 

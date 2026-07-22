@@ -56,6 +56,7 @@
 % 侧边栏
 % 宽度
 \newlength{\SidebarWidth}
+\setlength{\SidebarWidth}{0cm}
 \newcounter{SidebarEnvCounter}
 \def\currentSidebarState{0}% 当前页输出时使用的状态（0=关，1=开）
 \def\pendingSidebarState{0}% 用户设定的待生效状态
@@ -149,7 +150,7 @@
     \pgfgetlastxy{\westx}{\westy};
     \path (current page.east);
     \pgfgetlastxy{\eastx}{\easty};
-    \draw ({\westx + \m}, 0) -- ({\eastx - \m}, 0);
+    \draw ({\westx + \m + \SidebarWidth}, 0) -- ({\eastx - \m}, 0);
   \end{tikzpicture}
   \par
   \nointerlineskip
@@ -180,20 +181,6 @@
   \par
   \nointerlineskip % 紧接着画线或下一行
   \SepLine % 每行结束后自动画分割线
-}
-
-% 命令：跨页长文本块
-% 类似于 Word 的大文本框，可以确定高度
-% 用法: \begin{LongTextField}[高度] ... \end{LongTextField}
-\NewEnviron{LongTextField}[1][5cm]{%
-  \noindent
-  \begin{minipage}[t][#1][t]{\textwidth}
-    \vspace{0.5em} % 顶部留白
-    \BODY
-  \end{minipage}
-  \par
-  \nointerlineskip
-  \SepLine
 }
 
 \NewEnviron{TableFrame}{%
@@ -344,6 +331,7 @@
   \par
   \nointerlineskip
   \noindent
+  \setlength{\SidebarWidth}{0cm}
 }
 
 \newcommand{\DrawSidebarVerticalLine}{
@@ -387,6 +375,7 @@
   % 单行多列信息
   % 语法：\TableRow{列格式}{内容}
   % X 代表自动宽度，c 代表居中，l/r 分别是左/右对齐，| 代表竖线
+  % 在内容中，使用 & 分隔单元
   \TableRow{c|X}{
     \textbf{题\quad\quad 目} & 基于LaTeX的通用表格模板设计与实现
   }
@@ -407,41 +396,44 @@
   % 标题栏，l 表示左对齐
   \TableRow{l}{ \textbf{一、本选题的意义及国内外发展状况：} }
 
-  % 大段文本内容
-  % 如果内容很少，可以用 LongTextField 指定高度占位
-  \begin{LongTextField}[8cm]
-    样式修改后需要第二次编译边框线才能正确显示。
-
-    这个区域的高度被强制设为 8cm，适合手写填表。
-
-    如果需要跨页的长文本，无需且不能使用这个环境。
-
-  \end{LongTextField}
-
-  \TableRow{l}{ \textbf{二、研究内容：} }
-
   % 对于正文非常长的部分，不用 \TableRow，直接写内容，
   \vspace{0.5em} % 这个命令创建了 0.5em 高的垂直间距。
   % em是长度单位，1em长度基本与文本中一个汉字的高度相同。
   % 在本模板中，由于我技术有限，我们需要经常使用这个命令控制间距，请留意。
-  这里是研究内容的正文。由于我们使用的是 overlay 画外框，这里的文本可
-  以像普通 LaTeX 文档一样编写。
 
-  可以随意使用列表：
-  \begin{itemize}
-    \item 这是一个列表项
-    \item 这是另一个列表项
-  \end{itemize}
+  样式修改后可能需要第三次编译边框线才能正确显示。
 
-  也可以显示公式：
-  \begin{equation}
-    e^{\pi i} + 1 = 0
-  \end{equation}
+  \vspace{4cm} % 一个4cm 的垂直间距
 
-  下面这个 \texttt{lipsum} 命令会插入一大堆内容，用于在PDF中展示换页的效果。
-  \lipsum[1-1] % 插入一些假文
+  \TableRow{l}{ \textbf{二、研究内容：} }
 
-  \vspace{0.5em}
+  \begin{SidebarTable}{
+      \centering
+      支持侧边标题
+    }{1cm} % 1cm是侧边栏的宽度
+
+    \vspace{0.5em}
+
+    这里是研究内容的正文。由于我们使用的是 overlay 画外框，这里的文本可
+    以像普通 LaTeX 文档一样编写。
+
+    可以随意使用列表：
+    \begin{itemize}
+      \item 这是一个列表项
+      \item 这是另一个列表项
+    \end{itemize}
+
+    也可以显示公式：
+    \begin{equation}
+      e^{\pi i} + 1 = 0
+    \end{equation}
+
+    下面这个 \texttt{lipsum} 命令会插入一大堆内容，用于在PDF中展示换页的效果。
+    \lipsum[1-2] % 插入一些假文
+
+    \vspace{0.5em}
+
+  \end{SidebarTable}
 
   % 结尾签字栏
   \TableRow{X | X}{
@@ -472,34 +464,13 @@
 后面是更多的一些示例。
 
 \begin{TableFrame}
-  \vspace{0.5em}
-
-  在 \texttt{LongTextField} 里可以用 \texttt{vfill} 让内容靠下：
-
-  \vspaceSepLine{}
-  \begin{LongTextField}[4cm]
-    下面空了
-
-    \vfill
-
-    上面空了
-
-    \vspace{0.5em}
-  \end{LongTextField}
 
   % 技巧：通过调整 X 的系数 (如 >{\hsize=0.5\hsize}X ) 可以控制列宽比例
-  \SepLine{}
   \TableRow{X|>{\hsize=0.5\hsize}X}{
-    B & E
+    B & D
   }
   \TableRow{>{\hsize=0.5\hsize}X|X}{
-    A & G：由于我技术有限
-  }
-  \TableRow{>{\hsize=0.5\hsize}X|X}{
-    A & D：这时换页会有一些小瑕疵
-  }
-  \TableRow{>{\hsize=0.5\hsize}X|X}{
-    C & F：尽量避免多个表格行跨页出现
+    A & C：
   }
   \TableRow{l|X|X}{
     行1 & 内容A & 内容B
@@ -507,22 +478,6 @@
   \TableRow{l|X}{
     行2 & 内容C
   }
-
-  \vspace{0.5em}
-
-  我们经常还需要另一种奇怪的排版，像这样的：
-
-  \vspace{0.5em}
-
-  \begin{SidebarTable}{
-      % 前面这个参数是左边的文字内容
-      \centering
-      类似这样的
-      侧边栏
-    }{2cm}
-    %这个2cm是左侧的宽度
-    \lipsum[1-1]
-  \end{SidebarTable}
 
   \begin{SidebarTable}[
       \centering
@@ -535,23 +490,31 @@
       续
     ]{
       \centering
-      多
-
-      页
-
-      的
-
       侧
 
       边
 
       栏
     }{1cm}
-    可以跨页，跨页时可以使用可选参数指定第二页及其之后的页码的侧边栏的标题。
+    侧边栏跨页时可以使用可选参数指定第二页及其之后的页码的侧边栏的标题。
 
-    \lipsum[1-3]
+    \lipsum[1-1]
+
+    \vspace{0.5em}
+
+    \TableRow{X|X}{
+      此外，& 也可以
+    }
+    \TableRow{X|X}{
+      在侧边栏中 & 添加表格。
+    }
+    \vspace{0.5em}
+
+    和
+
+    \vspaceSepLine{}
+
+    使用分隔线。
   \end{SidebarTable}
-
 \end{TableFrame}
-
 \end{document}
