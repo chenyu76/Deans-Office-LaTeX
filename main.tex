@@ -20,13 +20,14 @@
   nomarginpar
 ]{geometry}
 \usepackage{tikz}
+\usetikzlibrary{calc}
 \usepackage{xltabular}  % 跨页长表格
 \usepackage{tabularx}   % 单行多列计算
 \usepackage{atbegshi}   % 每页画框
 \usepackage{calc}       % 长度计算
-\usepackage{environ}    % 更好的环境定义
 \usepackage{changepage} % 局部调整页边距，引入 adjustwidth 环境
 \usepackage{lipsum}     % 插入示例内容
+\usepackage{zref-savepos}
 
 % 计算表格内容的总宽度 (版心宽度)
 \newlength{\ContentWidth}
@@ -40,7 +41,7 @@
   \edef\@B{r@page:#2}%
   \ifcsname\@A\endcsname
   \ifcsname\@B\endcsname
-  \def\@extract##1##2\@nil{##2}%
+  \def\@extract##1##2##3\@nil{##2}%
   \expandafter\edef\expandafter\@pA\expandafter
   {\expandafter\expandafter\expandafter\@extract\csname\@A\endcsname\@nil}%
   \expandafter\edef\expandafter\@pB\expandafter
@@ -52,6 +53,14 @@
 \makeatother
 \newcounter{SidebarTableLabelCounter}
 \newcounter{TableFrameLabelCounter}
+
+\newcommand{\RememberTablePosition}[1]{%
+  \leavevmode
+  \zsavepos{#1}%
+  \hbox{%
+    \vrule width 1sp height 1sp depth 0pt%
+  }%
+}
 
 % 侧边栏
 % 宽度
@@ -68,6 +77,10 @@
   \global\def\pendingSidebarState{0}%
   \global\def\currentSidebarState{0}% 强制当前页输出时不画
 }
+\newcommand{\ResetSidebar}{%
+  \global\def\pendingSidebarState{0}%
+  \global\def\currentSidebarState{0}%
+}
 
 % 右侧侧边栏
 \newlength{\SidebarWidthR}
@@ -82,6 +95,10 @@
   \global\def\pendingSidebarStateR{0}%
   \global\def\currentSidebarStateR{0}%
 }
+\newcommand{\ResetSidebarR}{%
+  \global\def\pendingSidebarStateR{0}%
+  \global\def\currentSidebarStateR{0}%
+}
 
 % 页面外框
 \def\currentPageFrameState{0}% 当前页输出时使用的状态（0=关，1=开）
@@ -90,6 +107,10 @@
   \global\def\pendingPageFrameState{1}%
 }
 \newcommand{\DisablePageFrame}{%
+  \global\def\pendingPageFrameState{0}%
+  \global\def\currentPageFrameState{0}%
+}
+\newcommand{\ResetPageFrame}{%
   \global\def\pendingPageFrameState{0}%
   \global\def\currentPageFrameState{0}%
 }
@@ -106,82 +127,129 @@
 
 % 页面外框首半帧（从当前位置向下画到页底，加顶横线）
 \newcounter{PageEnvCounter}
-\newcommand{\DrawPageFrameHead}{%
+\newcommand{\DrawPageFrameHeadFrom}[1]{%
   \begin{tikzpicture}[overlay, remember picture]
-    \path (current page.west);
-    \pgfgetlastxy{\westx}{\dummy};
-    \path (current page.east);
-    \pgfgetlastxy{\eastx}{\dummyy};
-    \path (0,0);
-    \pgfgetlastxy{\dummyx}{\currenty}
-    \path (current page.south);
-    \pgfgetlastxy{\dummyx}{\southy}
-    \pgfmathsetlengthmacro{\m}{\PageMargin}
     \draw
-    ({\westx + \m}, 0) rectangle ({\eastx - \m}, {\southy - \currenty + \m});
+    ([xshift=\PageMargin, yshift={\dimexpr\zposy{#1}sp\relax}]current page.south west)
+    rectangle
+    ([xshift=-\PageMargin, yshift=\PageMargin]current page.south east);
   \end{tikzpicture}%
 }
 
 % 页面外框末半帧（从当前位置向上画到页顶，加底横线封口）
-\newcommand{\DrawPageFrameTail}{%
+\newcommand{\DrawPageFrameTailTo}[1]{%
   \begin{tikzpicture}[overlay, remember picture]
-    \path (current page.west);
-    \pgfgetlastxy{\westx}{\dummyy};
-    \path (current page.east);
-    \pgfgetlastxy{\eastx}{\dummmyy};
-    \path (0,0);
-    \pgfgetlastxy{\dummyx}{\currenty}
-    \path (current page.north);
-    \pgfgetlastxy{\dummyx}{\northy}
-    \pgfmathsetlengthmacro{\m}{\PageMargin}
     \draw
-    ({\westx + \m}, 0) rectangle ({\eastx - \m}, {\northy + \currenty - \m});
+    ([xshift=\PageMargin, yshift=-\PageMargin]current page.north west)
+    rectangle
+    ([xshift=-\PageMargin, yshift={\dimexpr\zposy{#1}sp\relax}]current page.south east);
   \end{tikzpicture}%
 }
 
 \AtBeginShipout{%
   \ifnum\currentPageFrameState=1
-  \AtBeginShipoutAddToBox{\DrawFullPageFrame}%
+    \ifnum\pendingPageFrameState=1
+      \AtBeginShipoutAddToBox{\DrawFullPageFrame}%
+    \fi
   \fi
   \ifnum\currentSidebarState=1
-  \AtBeginShipoutAddToBox{\DrawSidebarVerticalLine}%
+    \ifnum\pendingSidebarState=1
+      \AtBeginShipoutAddToBox{\DrawSidebarVerticalLine}%
+    \fi
   \fi
   \ifnum\currentSidebarStateR=1
-  \AtBeginShipoutAddToBox{\DrawSidebarVerticalLineR}%
+    \ifnum\pendingSidebarStateR=1
+      \AtBeginShipoutAddToBox{\DrawSidebarVerticalLineR}%
+    \fi
   \fi
   \xdef\currentSidebarState{\pendingSidebarState}%
   \xdef\currentPageFrameState{\pendingPageFrameState}%
   \xdef\currentSidebarStateR{\pendingSidebarStateR}%
 }
 
-% 命令：绘制横向分割线
-\newcommand{\SepLine}{%
+% 自动间距配置
+\newlength{\TableBlockSkip}
+\setlength{\TableBlockSkip}{0.5em}
+
+% 自动间距状态：0=初始，1=刚画完横线/表格边界，2=刚写完正文
+\newcount\TableAutoSpacingState
+\TableAutoSpacingState=0
+\newif\ifTableAutoSpacingActive
+\newif\ifTableAutoSpacingSuppressPara
+
+\newcommand{\TableAutoSpacingReset}{%
+  \global\TableAutoSpacingState=0\relax
+}
+\newcommand{\TableAutoSpacingMarkRule}{%
+  \global\TableAutoSpacingState=1\relax
+}
+\newcommand{\TableAutoSpacingMarkText}{%
+  \global\TableAutoSpacingState=2\relax
+}
+
+% 普通正文段落紧跟横线/表格边界时，自动补正文前间距。
+\AddToHook{para/begin}{%
+  \ifTableAutoSpacingActive
+    \ifTableAutoSpacingSuppressPara
+    \else
+      \ifnum\TableAutoSpacingState=1
+        \vadjust pre{\vskip\TableBlockSkip}%
+      \fi
+      \TableAutoSpacingMarkText
+    \fi
+  \fi
+}
+
+% 横线/表格边界紧跟普通正文时，自动补正文后间距。
+\newcommand{\TableAutoSpacingBeforeRule}{%
+  \ifTableAutoSpacingActive
+    \ifnum\TableAutoSpacingState=2
+      \par
+      \addvspace{\TableBlockSkip}%
+    \fi
+  \fi
+}
+
+% 命令：绘制横向分割线（底层命令，只画线，不自动加间距）
+\newcommand{\RawSepLine}{%
+  \begingroup
+  \TableAutoSpacingSuppressParatrue
   \par
   \nointerlineskip % 防止垂直间距干扰
   \noindent
   \begin{tikzpicture}[overlay, remember picture]
-    \pgfmathsetlengthmacro{\m}{\PageMargin};
+    \pgfmathsetlengthmacro{\m}{\PageMargin}
     % \pgfmathsetmacro{\h}{-1};
     % \path (current page.center);
     % \pgfgetlastxy{\centerx}{\centery}; % 提取 x 和 y 坐标
     \path (current page.west);
-    \pgfgetlastxy{\westx}{\westy};
+    \pgfgetlastxy{\westx}{\westy}
     \path (current page.east);
-    \pgfgetlastxy{\eastx}{\easty};
+    \pgfgetlastxy{\eastx}{\easty}
     \draw ({\westx + \m + \SidebarWidth}, 0) -- ({\eastx - \m -
     \SidebarWidthR}, 0);
   \end{tikzpicture}
   \par
   \nointerlineskip
+  \endgroup
+}
+
+% 命令：绘制横向分割线（状态感知）
+\newcommand{\SepLine}{%
+  \TableAutoSpacingBeforeRule
+  \RawSepLine
+  \TableAutoSpacingMarkRule
 }
 
 % 绘制带有垂直间距的分隔线
 \newcommand{\vspaceSepLine}{
-  \vspace{0.5em}
-
-  \SepLine
-
-  \vspace{0.5em}
+  \ifTableAutoSpacingActive
+    \SepLine
+  \else
+    \vspace{\TableBlockSkip}
+    \SepLine
+    \vspace{\TableBlockSkip}
+  \fi
 }
 
 % 命令：多列行
@@ -189,103 +257,94 @@
 % 示例: \TableRow{X|c|X}{ 左边 & 中间 & 右边 }
 % 注意：列格式不需要写两边的竖线，系统会自动处理
 \NewDocumentCommand{\TableRow}{O{\RowHeight} m m}{%
-  \noindent
   \SepLine % 一条分割线
   % 使用 tabularx 占满行宽
   % @{} 消除左右默认间距，使表格紧贴版心边缘
+  \begingroup
+  \TableAutoSpacingSuppressParatrue
+  \noindent
   \begin{tabularx}{\textwidth}{@{} #2 @{}}
     % 在每个单元格内插入一个不可见的rule撑开高度
     \rule{0pt}{#1} #3
   \end{tabularx}%
+  \endgroup
   \par
   \nointerlineskip % 紧接着画线或下一行
   \SepLine % 每行结束后自动画分割线
 }
 
-\NewEnviron{TableFrame}{%
+\NewDocumentEnvironment{TableFrame}{}{%
   \stepcounter{TableFrameLabelCounter}
+  \stepcounter{PageEnvCounter}%
+  \ResetPageFrame
   \par
+  \addvspace{\TableBlockSkip}%
+  \TableAutoSpacingSuppressParatrue
   \noindent
   \setlength{\parindent}{0pt}
   \setlength{\parskip}{0pt}
+  \RememberTablePosition{pageStart\thePageEnvCounter}%
   \ifsamePage{TableFrameStart\arabic{TableFrameLabelCounter}}{TableFrameEnd\arabic{TableFrameLabelCounter}}{%
-    \stepcounter{PageEnvCounter}%
-    \begin{tikzpicture}[overlay, remember picture]
-      \path (current page.west);
-      \pgfgetlastxy{\westx}{\dummy};
-      \path (current page.east);
-      \pgfgetlastxy{\eastx}{\dummyy};
-      \coordinate (pageStart\thePageEnvCounter) at (0,0);
-    \end{tikzpicture}%
   }{%
-    \DrawPageFrameHead
+    \DrawPageFrameHeadFrom{pageStart\thePageEnvCounter}%
     \EnablePageFrame
   }%
+  \TableAutoSpacingSuppressParafalse
   \par
   \nointerlineskip
+  \TableAutoSpacingActivetrue
+  \TableAutoSpacingReset
   \pageLabel{TableFrameStart\arabic{TableFrameLabelCounter}}
-  \BODY
+}{%
+  \TableAutoSpacingBeforeRule
   \pageLabel{TableFrameEnd\arabic{TableFrameLabelCounter}}
+  \TableAutoSpacingActivefalse
   \par
   \nointerlineskip
   \noindent
+  \RememberTablePosition{pageEnd\thePageEnvCounter}%
   \ifsamePage{TableFrameStart\arabic{TableFrameLabelCounter}}{TableFrameEnd\arabic{TableFrameLabelCounter}}{%
     \begin{tikzpicture}[overlay, remember picture]
-      \path (current page.west);
-      \pgfgetlastxy{\westx}{\dummyy};
-      \path (current page.east);
-      \pgfgetlastxy{\eastx}{\dummmyy};
-      \pgfmathsetlengthmacro{\m}{\PageMargin}
-      \coordinate (pageEnd\thePageEnvCounter) at (0,0);
-      \path (pageStart\thePageEnvCounter);
-      \pgfgetlastxy{\dummyx}{\startY}
-      \path (pageEnd\thePageEnvCounter);
-      \pgfgetlastxy{\endX}{\endY}
       \draw
-      ({\westx + \m}, \startY) rectangle ({\eastx - \m}, \endY);
+      ([xshift=\PageMargin, yshift={\dimexpr\zposy{pageStart\thePageEnvCounter}sp\relax}]current page.south west)
+      rectangle
+      ([xshift=-\PageMargin, yshift={\dimexpr\zposy{pageEnd\thePageEnvCounter}sp\relax}]current page.south east);
     \end{tikzpicture}%
   }{%
     \DisablePageFrame
-    \DrawPageFrameTail
+    \DrawPageFrameTailTo{pageEnd\thePageEnvCounter}%
   }%
+  \DisablePageFrame
   \par
+  \addvspace{\TableBlockSkip}%
 }
 
-\NewEnviron{SidebarTable}[3][]{%
+\NewDocumentEnvironment{SidebarTable}{+O{} +m m}{%
   \stepcounter{SidebarTableLabelCounter}
-  \xdef\@sideMultiTitle{#2}%
-  \def\@tmpa{#1}%
-  \ifx\@tmpa\@empty\else
-  \xdef\@sideMultiTitle{#1}%
+  \stepcounter{SidebarEnvCounter}%
+  \ResetSidebar
+  \gdef\SideMultiTitle{#2}%
+  \def\SideOptionalTitle{#1}%
+  \ifx\SideOptionalTitle\empty\else
+  \gdef\SideMultiTitle{#1}%
   \fi
   \SepLine{}
+  \TableAutoSpacingSuppressParatrue
   \par
   \nointerlineskip
   \noindent
   \setlength{\SidebarWidth}{#3}
+  \RememberTablePosition{sidebarStart\theSidebarEnvCounter}%
 
   \ifsamePage{SidebarTableStart\arabic{SidebarTableLabelCounter}}{SidebarTableEnd\arabic{SidebarTableLabelCounter}}{%
-    \stepcounter{SidebarEnvCounter}%
-    \begin{tikzpicture}[overlay, remember picture]
-      \path (current page.west);
-      \pgfgetlastxy{\westx}{\dummy};
-      \coordinate (sidebarStart\theSidebarEnvCounter) at (0,0);
-    \end{tikzpicture}%
   }{%
     \begin{tikzpicture}[overlay, remember picture]
-      \path (current page.west);
-      \pgfgetlastxy{\westx}{\dummy};
-      \path (0,0);
-      \pgfgetlastxy{\dummyx}{\currenty}
-      \path (current page.south);
-      \pgfgetlastxy{\dummyx}{\southy}
-      \pgfmathsetlengthmacro{\w}{\SidebarWidth}
-      \pgfmathsetlengthmacro{\m}{\PageMargin}
-      \pgfmathsetlengthmacro{\l}{\m + \westx + \w}
-      \pgfmathsetlengthmacro{\barcx}{\m + \westx + \w / 2}
-      \pgfmathsetlengthmacro{\barcy}{(\southy - \currenty + \m)/2}
-      \draw (\l, 0) -- (\l, {\southy - \currenty + \m});
-      \node at (\barcx, \barcy) {
+      \coordinate (sideLineStart) at ([xshift={\dimexpr\PageMargin+\SidebarWidth\relax}, yshift={\dimexpr\zposy{sidebarStart\theSidebarEnvCounter}sp\relax}]current page.south west);
+      \coordinate (sideLineBottom) at ([xshift={\dimexpr\PageMargin+\SidebarWidth\relax}, yshift=\PageMargin]current page.south west);
+      \coordinate (sideTitleStart) at ([xshift={\dimexpr\PageMargin+\SidebarWidth/2\relax}, yshift={\dimexpr\zposy{sidebarStart\theSidebarEnvCounter}sp\relax}]current page.south west);
+      \coordinate (sideTitleBottom) at ([xshift={\dimexpr\PageMargin+\SidebarWidth/2\relax}, yshift=\PageMargin]current page.south west);
+      \draw (sideLineStart) -- (sideLineBottom);
+      \node at ($(sideTitleStart)!0.5!(sideTitleBottom)$) {
         \begin{minipage}{#3}
           #2
         \end{minipage}
@@ -293,102 +352,83 @@
     \end{tikzpicture}%
     \EnableSidebar%
   }%
+  \TableAutoSpacingSuppressParafalse
   \begin{adjustwidth}{#3}{0cm}
     \pageLabel{SidebarTableStart\arabic{SidebarTableLabelCounter}}
-    \BODY
+}{%
+    \TableAutoSpacingBeforeRule
     \pageLabel{SidebarTableEnd\arabic{SidebarTableLabelCounter}}
   \end{adjustwidth}%
+  \RememberTablePosition{sidebarEnd\theSidebarEnvCounter}%
   \ifsamePage{SidebarTableStart\arabic{SidebarTableLabelCounter}}{SidebarTableEnd\arabic{SidebarTableLabelCounter}}{%
+    \DisableSidebar%
     \begin{tikzpicture}[overlay, remember picture]
-      \path (current page.west);
-      \pgfgetlastxy{\westx}{\dummyy};
-      \path (current page.east);
-      \pgfgetlastxy{\eastx}{\dummmyy};
-      \coordinate (sidebarEnd\theSidebarEnvCounter) at (0,0);
-      \path (sidebarStart\theSidebarEnvCounter);
-      \pgfgetlastxy{\dummyx}{\startY}
-      \path (sidebarEnd\theSidebarEnvCounter);
-      \pgfgetlastxy{\endX}{\endY}
-      \pgfmathsetlengthmacro{\w}{\SidebarWidth}
-      \pgfmathsetlengthmacro{\m}{\PageMargin}
-      \pgfmathsetlengthmacro{\l}{\m + \westx + \w}
-      \pgfmathsetlengthmacro{\barcx}{\m + \westx + \w / 2}
-      \pgfmathsetlengthmacro{\midY}{(\startY + \endY) / 2}
-      \draw (\l, \startY) -- (\l, \endY);
-      \draw ({\westx + \m}, \endY) -- ({\eastx - \m}, \endY);
-      \node at (\barcx, \midY) {
+      \coordinate (sideLineStart) at ([xshift={\dimexpr\PageMargin+\SidebarWidth\relax}, yshift={\dimexpr\zposy{sidebarStart\theSidebarEnvCounter}sp\relax}]current page.south west);
+      \coordinate (sideLineEnd) at ([xshift={\dimexpr\PageMargin+\SidebarWidth\relax}, yshift={\dimexpr\zposy{sidebarEnd\theSidebarEnvCounter}sp\relax}]current page.south west);
+      \coordinate (sideTitleStart) at ([xshift={\dimexpr\PageMargin+\SidebarWidth/2\relax}, yshift={\dimexpr\zposy{sidebarStart\theSidebarEnvCounter}sp\relax}]current page.south west);
+      \coordinate (sideTitleEnd) at ([xshift={\dimexpr\PageMargin+\SidebarWidth/2\relax}, yshift={\dimexpr\zposy{sidebarEnd\theSidebarEnvCounter}sp\relax}]current page.south west);
+      \draw (sideLineStart) -- (sideLineEnd);
+      \draw ([xshift=\PageMargin, yshift={\dimexpr\zposy{sidebarEnd\theSidebarEnvCounter}sp\relax}]current page.south west)
+      -- ([xshift=-\PageMargin, yshift={\dimexpr\zposy{sidebarEnd\theSidebarEnvCounter}sp\relax}]current page.south east);
+      \node at ($(sideTitleStart)!0.5!(sideTitleEnd)$) {
         \begin{minipage}{#3}
           #2
         \end{minipage}
       };
     \end{tikzpicture}%
+    \TableAutoSpacingMarkRule
   }{%
     \DisableSidebar%
     \begin{tikzpicture}[overlay, remember picture]
-      \path (current page.west);
-      \pgfgetlastxy{\westx}{\dummyy};
-      \path (0,0);
-      \pgfgetlastxy{\dummyx}{\currenty}
-      \path (current page.north);
-      \pgfgetlastxy{\dummyx}{\northy}
-      \path (current page.east);
-      \pgfgetlastxy{\eastx}{\dummmyy};
-      \pgfmathsetlengthmacro{\w}{\SidebarWidth}
-      \pgfmathsetlengthmacro{\m}{\PageMargin}
-      \pgfmathsetlengthmacro{\l}{\m + \westx + \w}
-      \draw (\l, 0) -- (\l, {\northy + \currenty - \m});
-      \draw ({\westx + \m}, 0) -- ({\eastx - \m}, 0);
-      \pgfmathsetlengthmacro{\barcx}{\m + \westx + \w / 2}
-      \pgfmathsetlengthmacro{\barcy}{(\northy + \currenty - \m)/2}
-      \node at (\barcx, \barcy) {
+      \coordinate (sideLineTop) at ([xshift={\dimexpr\PageMargin+\SidebarWidth\relax}, yshift=-\PageMargin]current page.north west);
+      \coordinate (sideLineEnd) at ([xshift={\dimexpr\PageMargin+\SidebarWidth\relax}, yshift={\dimexpr\zposy{sidebarEnd\theSidebarEnvCounter}sp\relax}]current page.south west);
+      \coordinate (sideTitleTop) at ([xshift={\dimexpr\PageMargin+\SidebarWidth/2\relax}, yshift=-\PageMargin]current page.north west);
+      \coordinate (sideTitleEnd) at ([xshift={\dimexpr\PageMargin+\SidebarWidth/2\relax}, yshift={\dimexpr\zposy{sidebarEnd\theSidebarEnvCounter}sp\relax}]current page.south west);
+      \draw (sideLineTop) -- (sideLineEnd);
+      \draw ([xshift=\PageMargin, yshift={\dimexpr\zposy{sidebarEnd\theSidebarEnvCounter}sp\relax}]current page.south west)
+      -- ([xshift=-\PageMargin, yshift={\dimexpr\zposy{sidebarEnd\theSidebarEnvCounter}sp\relax}]current page.south east);
+      \node at ($(sideTitleTop)!0.5!(sideTitleEnd)$) {
         \begin{minipage}{#3}
-          #1
+          \SideMultiTitle
         \end{minipage}
       };
     \end{tikzpicture}%
+    \TableAutoSpacingMarkRule
   }%
+  \DisableSidebar
   \par
   \nointerlineskip
-  \noindent
+  \global\SidebarWidth=0cm\relax
   \setlength{\SidebarWidth}{0cm}
 }
 
 \newcounter{SidebarTableLabelCounterR}
-\NewEnviron{SidebarTableR}[3][]{%
+\NewDocumentEnvironment{SidebarTableR}{+O{} +m m}{%
   \stepcounter{SidebarTableLabelCounterR}
-  \xdef\@sideMultiTitleR{#2}%
-  \def\@tmpa{#1}%
-  \ifx\@tmpa\@empty\else
-  \xdef\@sideMultiTitleR{#1}%
+  \stepcounter{SidebarEnvCounterR}%
+  \ResetSidebarR
+  \gdef\SideMultiTitleR{#2}%
+  \def\SideOptionalTitleR{#1}%
+  \ifx\SideOptionalTitleR\empty\else
+  \gdef\SideMultiTitleR{#1}%
   \fi
   \SepLine{}
+  \TableAutoSpacingSuppressParatrue
   \par
   \nointerlineskip
   \noindent
   \setlength{\SidebarWidthR}{#3}
+  \RememberTablePosition{sidebarRStart\theSidebarEnvCounterR}%
 
   \ifsamePage{SidebarTableRStart\arabic{SidebarTableLabelCounterR}}{SidebarTableREnd\arabic{SidebarTableLabelCounterR}}{%
-    \stepcounter{SidebarEnvCounterR}%
-    \begin{tikzpicture}[overlay, remember picture]
-      \path (current page.east);
-      \pgfgetlastxy{\eastx}{\dummy};
-      \coordinate (sidebarRStart\theSidebarEnvCounterR) at (0,0);
-    \end{tikzpicture}%
   }{%
     \begin{tikzpicture}[overlay, remember picture]
-      \path (current page.east);
-      \pgfgetlastxy{\eastx}{\dummy};
-      \path (0,0);
-      \pgfgetlastxy{\dummyx}{\currenty}
-      \path (current page.south);
-      \pgfgetlastxy{\dummyx}{\southy}
-      \pgfmathsetlengthmacro{\w}{\SidebarWidthR}
-      \pgfmathsetlengthmacro{\m}{\PageMargin}
-      \pgfmathsetlengthmacro{\l}{\eastx - \m - \w}
-      \pgfmathsetlengthmacro{\barcx}{\eastx - \m - \w / 2}
-      \pgfmathsetlengthmacro{\barcy}{(\southy - \currenty + \m)/2}
-      \draw (\l, 0) -- (\l, {\southy - \currenty + \m});
-      \node at (\barcx, \barcy) {
+      \coordinate (sideRLineStart) at ([xshift={\dimexpr-\PageMargin-\SidebarWidthR\relax}, yshift={\dimexpr\zposy{sidebarRStart\theSidebarEnvCounterR}sp\relax}]current page.south east);
+      \coordinate (sideRLineBottom) at ([xshift={\dimexpr-\PageMargin-\SidebarWidthR\relax}, yshift=\PageMargin]current page.south east);
+      \coordinate (sideRTitleStart) at ([xshift={\dimexpr-\PageMargin-\SidebarWidthR/2\relax}, yshift={\dimexpr\zposy{sidebarRStart\theSidebarEnvCounterR}sp\relax}]current page.south east);
+      \coordinate (sideRTitleBottom) at ([xshift={\dimexpr-\PageMargin-\SidebarWidthR/2\relax}, yshift=\PageMargin]current page.south east);
+      \draw (sideRLineStart) -- (sideRLineBottom);
+      \node at ($(sideRTitleStart)!0.5!(sideRTitleBottom)$) {
         \begin{minipage}{#3}
           #2
         \end{minipage}
@@ -396,86 +436,67 @@
     \end{tikzpicture}%
     \EnableSidebarR%
   }%
+  \TableAutoSpacingSuppressParafalse
   \begin{adjustwidth}{0cm}{#3}
     \pageLabel{SidebarTableRStart\arabic{SidebarTableLabelCounterR}}
-    \BODY
+}{%
+    \TableAutoSpacingBeforeRule
     \pageLabel{SidebarTableREnd\arabic{SidebarTableLabelCounterR}}
   \end{adjustwidth}%
+  \RememberTablePosition{sidebarREnd\theSidebarEnvCounterR}%
   \ifsamePage{SidebarTableRStart\arabic{SidebarTableLabelCounterR}}{SidebarTableREnd\arabic{SidebarTableLabelCounterR}}{%
+    \DisableSidebarR%
     \begin{tikzpicture}[overlay, remember picture]
-      \path (current page.west);
-      \pgfgetlastxy{\westx}{\dummyy};
-      \path (current page.east);
-      \pgfgetlastxy{\eastx}{\dummmyy};
-      \coordinate (sidebarREnd\theSidebarEnvCounterR) at (0,0);
-      \path (sidebarRStart\theSidebarEnvCounterR);
-      \pgfgetlastxy{\dummyx}{\startY}
-      \path (sidebarREnd\theSidebarEnvCounterR);
-      \pgfgetlastxy{\endX}{\endY}
-      \pgfmathsetlengthmacro{\w}{\SidebarWidthR}
-      \pgfmathsetlengthmacro{\m}{\PageMargin}
-      \pgfmathsetlengthmacro{\l}{\eastx - \m - \w}
-      \pgfmathsetlengthmacro{\barcx}{\eastx - \m - \w / 2}
-      \pgfmathsetlengthmacro{\midY}{(\startY + \endY) / 2}
-      \draw (\l, \startY) -- (\l, \endY);
-      \draw ({\westx + \m}, \endY) -- ({\eastx - \m}, \endY);
-      \node at (\barcx, \midY) {
+      \coordinate (sideRLineStart) at ([xshift={\dimexpr-\PageMargin-\SidebarWidthR\relax}, yshift={\dimexpr\zposy{sidebarRStart\theSidebarEnvCounterR}sp\relax}]current page.south east);
+      \coordinate (sideRLineEnd) at ([xshift={\dimexpr-\PageMargin-\SidebarWidthR\relax}, yshift={\dimexpr\zposy{sidebarREnd\theSidebarEnvCounterR}sp\relax}]current page.south east);
+      \coordinate (sideRTitleStart) at ([xshift={\dimexpr-\PageMargin-\SidebarWidthR/2\relax}, yshift={\dimexpr\zposy{sidebarRStart\theSidebarEnvCounterR}sp\relax}]current page.south east);
+      \coordinate (sideRTitleEnd) at ([xshift={\dimexpr-\PageMargin-\SidebarWidthR/2\relax}, yshift={\dimexpr\zposy{sidebarREnd\theSidebarEnvCounterR}sp\relax}]current page.south east);
+      \draw (sideRLineStart) -- (sideRLineEnd);
+      \draw ([xshift=\PageMargin, yshift={\dimexpr\zposy{sidebarREnd\theSidebarEnvCounterR}sp\relax}]current page.south west)
+      -- ([xshift=-\PageMargin, yshift={\dimexpr\zposy{sidebarREnd\theSidebarEnvCounterR}sp\relax}]current page.south east);
+      \node at ($(sideRTitleStart)!0.5!(sideRTitleEnd)$) {
         \begin{minipage}{#3}
           #2
         \end{minipage}
       };
     \end{tikzpicture}%
+    \TableAutoSpacingMarkRule
   }{%
     \DisableSidebarR%
     \begin{tikzpicture}[overlay, remember picture]
-      \path (current page.west);
-      \pgfgetlastxy{\westx}{\dummyy};
-      \path (current page.east);
-      \pgfgetlastxy{\eastx}{\dummmyy};
-      \path (0,0);
-      \pgfgetlastxy{\dummyx}{\currenty}
-      \path (current page.north);
-      \pgfgetlastxy{\dummyx}{\northy}
-      \pgfmathsetlengthmacro{\w}{\SidebarWidthR}
-      \pgfmathsetlengthmacro{\m}{\PageMargin}
-      \pgfmathsetlengthmacro{\l}{\eastx - \m - \w}
-      \draw (\l, 0) -- (\l, {\northy + \currenty - \m});
-      \draw ({\westx + \m}, 0) -- ({\eastx - \m}, 0);
-      \pgfmathsetlengthmacro{\barcx}{\eastx - \m - \w / 2}
-      \pgfmathsetlengthmacro{\barcy}{(\northy + \currenty - \m)/2}
-      \node at (\barcx, \barcy) {
+      \coordinate (sideRLineTop) at ([xshift={\dimexpr-\PageMargin-\SidebarWidthR\relax}, yshift=-\PageMargin]current page.north east);
+      \coordinate (sideRLineEnd) at ([xshift={\dimexpr-\PageMargin-\SidebarWidthR\relax}, yshift={\dimexpr\zposy{sidebarREnd\theSidebarEnvCounterR}sp\relax}]current page.south east);
+      \coordinate (sideRTitleTop) at ([xshift={\dimexpr-\PageMargin-\SidebarWidthR/2\relax}, yshift=-\PageMargin]current page.north east);
+      \coordinate (sideRTitleEnd) at ([xshift={\dimexpr-\PageMargin-\SidebarWidthR/2\relax}, yshift={\dimexpr\zposy{sidebarREnd\theSidebarEnvCounterR}sp\relax}]current page.south east);
+      \draw (sideRLineTop) -- (sideRLineEnd);
+      \draw ([xshift=\PageMargin, yshift={\dimexpr\zposy{sidebarREnd\theSidebarEnvCounterR}sp\relax}]current page.south west)
+      -- ([xshift=-\PageMargin, yshift={\dimexpr\zposy{sidebarREnd\theSidebarEnvCounterR}sp\relax}]current page.south east);
+      \node at ($(sideRTitleTop)!0.5!(sideRTitleEnd)$) {
         \begin{minipage}{#3}
-          #1
+          \SideMultiTitleR
         \end{minipage}
       };
     \end{tikzpicture}%
+    \TableAutoSpacingMarkRule
   }%
+  \DisableSidebarR
   \par
   \nointerlineskip
-  \noindent
+  \global\SidebarWidthR=0cm\relax
   \setlength{\SidebarWidthR}{0cm}
 }
 
 \newcommand{\DrawSidebarVerticalLine}{
   \begin{tikzpicture}[overlay, remember picture]
-    \path (current page.west);
-    \pgfgetlastxy{\westx}{\dummy};
-    \path (0,0);
-    \pgfgetlastxy{\dummyx}{\currenty}
-    \path (current page.south);
-    \pgfgetlastxy{\dummyx}{\southy}
-    \path (current page.north);
-    \pgfgetlastxy{\dummyx}{\northy}
-    \pgfmathsetlengthmacro{\w}{\SidebarWidth}
-    \pgfmathsetlengthmacro{\m}{\PageMargin}
-    \pgfmathsetlengthmacro{\l}{\m + \westx + \w}
-    \pgfmathsetlengthmacro{\barcx}{\m + \westx + \w / 2}
-    \pgfmathsetlengthmacro{\barcy}{(\southy + \northy) / 2}
-    \draw (\l, {\southy - \currenty + \m}) -- (\l, {\northy + \currenty - \m});
-    \node at (\barcx, \barcy) {
+    \coordinate (sideLineBottom) at ([xshift={\dimexpr\PageMargin+\SidebarWidth\relax}, yshift=\PageMargin]current page.south west);
+    \coordinate (sideLineTop) at ([xshift={\dimexpr\PageMargin+\SidebarWidth\relax}, yshift=-\PageMargin]current page.north west);
+    \coordinate (sideTitleBottom) at ([xshift={\dimexpr\PageMargin+\SidebarWidth/2\relax}, yshift=\PageMargin]current page.south west);
+    \coordinate (sideTitleTop) at ([xshift={\dimexpr\PageMargin+\SidebarWidth/2\relax}, yshift=-\PageMargin]current page.north west);
+    \draw (sideLineBottom) -- (sideLineTop);
+    \node at ($(sideTitleBottom)!0.5!(sideTitleTop)$) {
       \begin{minipage}{\SidebarWidth}
         \centering
-        \@sideMultiTitle
+        \SideMultiTitle
       \end{minipage}
     };
   \end{tikzpicture}%
@@ -483,24 +504,15 @@
 
 \newcommand{\DrawSidebarVerticalLineR}{
   \begin{tikzpicture}[overlay, remember picture]
-    \path (current page.east);
-    \pgfgetlastxy{\eastx}{\dummy};
-    \path (0,0);
-    \pgfgetlastxy{\dummyx}{\currenty}
-    \path (current page.south);
-    \pgfgetlastxy{\dummyx}{\southy}
-    \path (current page.north);
-    \pgfgetlastxy{\dummyx}{\northy}
-    \pgfmathsetlengthmacro{\w}{\SidebarWidthR}
-    \pgfmathsetlengthmacro{\m}{\PageMargin}
-    \pgfmathsetlengthmacro{\l}{\eastx - \m - \w}
-    \pgfmathsetlengthmacro{\barcx}{\eastx - \m - \w / 2}
-    \pgfmathsetlengthmacro{\barcy}{(\southy + \northy) / 2}
-    \draw (\l, {\southy - \currenty + \m}) -- (\l, {\northy + \currenty - \m});
-    \node at (\barcx, \barcy) {
+    \coordinate (sideRLineBottom) at ([xshift={\dimexpr-\PageMargin-\SidebarWidthR\relax}, yshift=\PageMargin]current page.south east);
+    \coordinate (sideRLineTop) at ([xshift={\dimexpr-\PageMargin-\SidebarWidthR\relax}, yshift=-\PageMargin]current page.north east);
+    \coordinate (sideRTitleBottom) at ([xshift={\dimexpr-\PageMargin-\SidebarWidthR/2\relax}, yshift=\PageMargin]current page.south east);
+    \coordinate (sideRTitleTop) at ([xshift={\dimexpr-\PageMargin-\SidebarWidthR/2\relax}, yshift=-\PageMargin]current page.north east);
+    \draw (sideRLineBottom) -- (sideRLineTop);
+    \node at ($(sideRTitleBottom)!0.5!(sideRTitleTop)$) {
       \begin{minipage}{\SidebarWidthR}
         \centering
-        \@sideMultiTitleR
+        \SideMultiTitleR
       \end{minipage}
     };
   \end{tikzpicture}%
@@ -543,10 +555,8 @@
   % 标题栏，l 表示左对齐
   \TableRow{l}{ \textbf{一、本选题的意义及国内外发展状况：} }
 
-  % 对于正文非常长的部分，不用 \TableRow，直接写内容，
-  \vspace{0.5em} % 这个命令创建了 0.5em 高的垂直间距。
-  % em是长度单位，1em长度基本与文本中一个汉字的高度相同。
-  % 在本模板中，由于我技术有限，我们需要经常使用这个命令控制间距，请留意。
+  % 对于正文非常长的部分，不用 \TableRow，直接写内容。
+  % 模板会在表格线和普通正文之间自动补常规间距。
 
   样式修改后可能需要第三次编译边框线才能正确显示。
 
@@ -558,8 +568,6 @@
       \centering
       支持侧边标题
     }{1cm} % 1cm是侧边栏的宽度
-
-    \vspace{0.5em}
 
     这里是研究内容的正文。由于我们使用的是 overlay 画外框，这里的文本可
     以像普通 LaTeX 文档一样编写。
@@ -578,8 +586,6 @@
     下面这个 \texttt{lipsum} 命令会插入一大堆内容，用于在PDF中展示换页的效果。
     \lipsum[1-2] % 插入一些假文
 
-    \vspace{0.5em}
-
   \end{SidebarTable}
 
   % 结尾签字栏
@@ -591,18 +597,14 @@
     \vspace{2.5cm} & \vspace{2.5cm}
   }
 
-  \vspace{0.5em}
-
   可以使用\texttt{\textbackslash{}vspaceSepLine}命令来画一条带间距的分割线：
 
   \vspaceSepLine
 
   像上面那条。
 
-  \texttt{TableFrame} 环境结束前如果是文本需要添加一个
-  \texttt{vspace}，否则底下的边框线会和文本重叠。
-
-  \vspace{0.5em}
+  \texttt{TableFrame} 环境结束前如果是文本，现在也会自动补间距，
+  避免底下的边框线和文本重叠。
 
 \end{TableFrame}
 
@@ -647,8 +649,6 @@
 
     \lipsum[1-1]
 
-    \vspace{0.5em}
-
     \TableRow{X|X}{
       此外，& 也可以
     }
@@ -656,7 +656,6 @@
       \centering 在侧边栏中 \newline  % 在表格中使用 \newline 换行
       添加表格。 &
     }
-    \vspace{0.5em}
 
     和
 
@@ -665,7 +664,7 @@
     使用分隔线。
   \end{SidebarTable}
 
-  \begin{SidebarTableR}[h]{
+  \begin{SidebarTableR}{
       \centering
       照片
 
@@ -674,4 +673,134 @@
     最后，还有侧边栏在右侧的版本\texttt{SidebarTableR} 。这也许可以用来放照片
   \end{SidebarTableR}
 \end{TableFrame}
+
+\clearpage
+\textbf{自动间距压力测试。}
+
+以下内容用于检查：连续表格行之间不应出现额外空白；正文与横线、
+正文与表格行之间应自动产生常规间距。
+
+\begin{TableFrame}
+  \TableRow{l}{\textbf{测试一：连续 \texttt{\textbackslash{}TableRow}}}
+  \TableRow{X|X}{连续行 A 左 & 连续行 A 右}
+  \TableRow{X|X}{连续行 B 左 & 连续行 B 右}
+  \TableRow{X|X}{连续行 C 左 & 连续行 C 右}
+
+  这段正文紧跟连续表格行。这里不手动写
+  \texttt{\textbackslash{}vspace\{0.5em\}}，用于检查
+  \texttt{rule -> text} 是否自动补出正文前间距。
+
+  这段正文后面马上接新的表格行，用于检查
+  \texttt{text -> rule} 是否只补一次间距。
+
+  \TableRow{l}{\textbf{测试二：正文后接表格行}}
+  \TableRow{c|X|c|X}{
+    甲 & 正文后第一行 & 乙 & 正文后第二列
+  }
+
+  这段正文后面接一条状态感知分隔线。
+
+  \vspaceSepLine
+
+  分隔线后面直接写正文，用于检查分隔线上下的常规间距。
+
+  \vspaceSepLine
+  \vspaceSepLine
+
+  上面连续调用了两次 \texttt{\textbackslash{}vspaceSepLine}；
+  两条线之间不应叠加出多余的 \texttt{0.5em} 空白。
+
+  \TableRow{l}{\textbf{测试三：正文、公式、列表混排}}
+
+  这里先写普通正文，然后接列表：
+  \begin{itemize}
+    \item 列表项一：检查列表环境不会破坏后续表格行间距。
+    \item 列表项二：这里包含行内公式 $a^2+b^2=c^2$。
+  \end{itemize}
+
+  列表后接显示公式：
+  \begin{equation}
+    \int_0^1 x^2\,dx = \frac{1}{3}
+  \end{equation}
+
+  公式后面接表格行。
+  \TableRow{X|X}{
+    公式后的表格行左侧 &
+    公式后的表格行右侧
+  }
+
+  这个 \texttt{TableFrame} 的最后内容是普通正文，用于检查环境结束前
+  是否自动补底部安全间距，避免文字和底部边框重叠。
+\end{TableFrame}
+
+你好
+
+\begin{TableFrame}
+  \TableRow{l}{\textbf{测试四：侧边栏内自动间距与内嵌表格}}
+
+  \begin{SidebarTable}[
+      \centering
+      左侧栏续页
+    ]{
+      \centering
+      左侧栏
+    }{1.2cm}
+    侧边栏开头直接写正文，不手动写 \texttt{\textbackslash{}vspace}。
+
+    \TableRow{X|X}{
+      侧栏内表格第一行左 &
+      侧栏内表格第一行右
+    }
+    \TableRow{X|X}{
+      侧栏内表格第二行左 &
+      侧栏内表格第二行右
+    }
+
+    表格行后直接恢复正文，用于检查侧栏内部
+    \texttt{rule -> text} 的自动间距。
+
+    \vspaceSepLine
+
+    分隔线后接多段正文。
+
+    \lipsum[2-3]
+
+    \TableRow{l|X}{
+      侧栏内长内容后表格 &
+      检查跨页前后的横线状态
+    }
+
+    侧栏环境最后以正文结束，用于检查侧栏结束线前的自动间距。
+  \end{SidebarTable}
+
+  \TableRow{l}{\textbf{测试五：右侧栏与后续表格行}}
+
+  \begin{SidebarTableR}{
+      \centering
+      右侧栏
+    }{3cm}
+    右侧栏正文开头不写手动间距。
+
+    \begin{enumerate}
+      \item 枚举项一。
+      \item 枚举项二，后面接分隔线。
+    \end{enumerate}
+
+    \vspaceSepLine
+
+    分隔线后接右侧栏正文，并在末尾直接结束侧栏。
+  \end{SidebarTableR}
+
+  \TableRow{X|X|X}{
+    右侧栏后的连续表格 A &
+    中间列 &
+    右列
+  }
+  \TableRow{X|X|X}{
+    右侧栏后的连续表格 B &
+    中间列 &
+    右列
+  }
+\end{TableFrame}
+
 \end{document}
