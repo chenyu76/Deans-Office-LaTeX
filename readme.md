@@ -85,6 +85,8 @@ xelatex main.tex
 \end{SidebarTable}
 ```
 
+此外，还有一个侧边栏在右侧的版本 `SidebarTableR`，语法完全一致。
+
 ### 分割线（`\vspaceSepLine`)
 
 画一条分割线。

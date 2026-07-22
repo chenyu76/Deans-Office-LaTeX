@@ -69,6 +69,20 @@
   \global\def\currentSidebarState{0}% 强制当前页输出时不画
 }
 
+% 右侧侧边栏
+\newlength{\SidebarWidthR}
+\setlength{\SidebarWidthR}{0cm}
+\newcounter{SidebarEnvCounterR}
+\def\currentSidebarStateR{0}
+\def\pendingSidebarStateR{0}
+\newcommand{\EnableSidebarR}{%
+  \global\def\pendingSidebarStateR{1}%
+}
+\newcommand{\DisableSidebarR}{%
+  \global\def\pendingSidebarStateR{0}%
+  \global\def\currentSidebarStateR{0}%
+}
+
 % 页面外框
 \def\currentPageFrameState{0}% 当前页输出时使用的状态（0=关，1=开）
 \def\pendingPageFrameState{0}% 用户设定的待生效状态
@@ -132,8 +146,12 @@
   \ifnum\currentSidebarState=1
   \AtBeginShipoutAddToBox{\DrawSidebarVerticalLine}%
   \fi
+  \ifnum\currentSidebarStateR=1
+  \AtBeginShipoutAddToBox{\DrawSidebarVerticalLineR}%
+  \fi
   \xdef\currentSidebarState{\pendingSidebarState}%
   \xdef\currentPageFrameState{\pendingPageFrameState}%
+  \xdef\currentSidebarStateR{\pendingSidebarStateR}%
 }
 
 % 命令：绘制横向分割线
@@ -150,7 +168,8 @@
     \pgfgetlastxy{\westx}{\westy};
     \path (current page.east);
     \pgfgetlastxy{\eastx}{\easty};
-    \draw ({\westx + \m + \SidebarWidth}, 0) -- ({\eastx - \m}, 0);
+    \draw ({\westx + \m + \SidebarWidth}, 0) -- ({\eastx - \m -
+    \SidebarWidthR}, 0);
   \end{tikzpicture}
   \par
   \nointerlineskip
@@ -334,6 +353,109 @@
   \setlength{\SidebarWidth}{0cm}
 }
 
+\newcounter{SidebarTableLabelCounterR}
+\NewEnviron{SidebarTableR}[3][]{%
+  \stepcounter{SidebarTableLabelCounterR}
+  \xdef\@sideMultiTitleR{#2}%
+  \def\@tmpa{#1}%
+  \ifx\@tmpa\@empty\else
+  \xdef\@sideMultiTitleR{#1}%
+  \fi
+  \SepLine{}
+  \par
+  \nointerlineskip
+  \noindent
+  \setlength{\SidebarWidthR}{#3}
+
+  \ifsamePage{SidebarTableRStart\arabic{SidebarTableLabelCounterR}}{SidebarTableREnd\arabic{SidebarTableLabelCounterR}}{%
+    \stepcounter{SidebarEnvCounterR}%
+    \begin{tikzpicture}[overlay, remember picture]
+      \path (current page.east);
+      \pgfgetlastxy{\eastx}{\dummy};
+      \coordinate (sidebarRStart\theSidebarEnvCounterR) at (0,0);
+    \end{tikzpicture}%
+  }{%
+    \begin{tikzpicture}[overlay, remember picture]
+      \path (current page.east);
+      \pgfgetlastxy{\eastx}{\dummy};
+      \path (0,0);
+      \pgfgetlastxy{\dummyx}{\currenty}
+      \path (current page.south);
+      \pgfgetlastxy{\dummyx}{\southy}
+      \pgfmathsetlengthmacro{\w}{\SidebarWidthR}
+      \pgfmathsetlengthmacro{\m}{\PageMargin}
+      \pgfmathsetlengthmacro{\l}{\eastx - \m - \w}
+      \pgfmathsetlengthmacro{\barcx}{\eastx - \m - \w / 2}
+      \pgfmathsetlengthmacro{\barcy}{(\southy - \currenty + \m)/2}
+      \draw (\l, 0) -- (\l, {\southy - \currenty + \m});
+      \node at (\barcx, \barcy) {
+        \begin{minipage}{#3}
+          #2
+        \end{minipage}
+      };
+    \end{tikzpicture}%
+    \EnableSidebarR%
+  }%
+  \begin{adjustwidth}{0cm}{#3}
+    \pageLabel{SidebarTableRStart\arabic{SidebarTableLabelCounterR}}
+    \BODY
+    \pageLabel{SidebarTableREnd\arabic{SidebarTableLabelCounterR}}
+  \end{adjustwidth}%
+  \ifsamePage{SidebarTableRStart\arabic{SidebarTableLabelCounterR}}{SidebarTableREnd\arabic{SidebarTableLabelCounterR}}{%
+    \begin{tikzpicture}[overlay, remember picture]
+      \path (current page.west);
+      \pgfgetlastxy{\westx}{\dummyy};
+      \path (current page.east);
+      \pgfgetlastxy{\eastx}{\dummmyy};
+      \coordinate (sidebarREnd\theSidebarEnvCounterR) at (0,0);
+      \path (sidebarRStart\theSidebarEnvCounterR);
+      \pgfgetlastxy{\dummyx}{\startY}
+      \path (sidebarREnd\theSidebarEnvCounterR);
+      \pgfgetlastxy{\endX}{\endY}
+      \pgfmathsetlengthmacro{\w}{\SidebarWidthR}
+      \pgfmathsetlengthmacro{\m}{\PageMargin}
+      \pgfmathsetlengthmacro{\l}{\eastx - \m - \w}
+      \pgfmathsetlengthmacro{\barcx}{\eastx - \m - \w / 2}
+      \pgfmathsetlengthmacro{\midY}{(\startY + \endY) / 2}
+      \draw (\l, \startY) -- (\l, \endY);
+      \draw ({\westx + \m}, \endY) -- ({\eastx - \m}, \endY);
+      \node at (\barcx, \midY) {
+        \begin{minipage}{#3}
+          #2
+        \end{minipage}
+      };
+    \end{tikzpicture}%
+  }{%
+    \DisableSidebarR%
+    \begin{tikzpicture}[overlay, remember picture]
+      \path (current page.west);
+      \pgfgetlastxy{\westx}{\dummyy};
+      \path (current page.east);
+      \pgfgetlastxy{\eastx}{\dummmyy};
+      \path (0,0);
+      \pgfgetlastxy{\dummyx}{\currenty}
+      \path (current page.north);
+      \pgfgetlastxy{\dummyx}{\northy}
+      \pgfmathsetlengthmacro{\w}{\SidebarWidthR}
+      \pgfmathsetlengthmacro{\m}{\PageMargin}
+      \pgfmathsetlengthmacro{\l}{\eastx - \m - \w}
+      \draw (\l, 0) -- (\l, {\northy + \currenty - \m});
+      \draw ({\westx + \m}, 0) -- ({\eastx - \m}, 0);
+      \pgfmathsetlengthmacro{\barcx}{\eastx - \m - \w / 2}
+      \pgfmathsetlengthmacro{\barcy}{(\northy + \currenty - \m)/2}
+      \node at (\barcx, \barcy) {
+        \begin{minipage}{#3}
+          #1
+        \end{minipage}
+      };
+    \end{tikzpicture}%
+  }%
+  \par
+  \nointerlineskip
+  \noindent
+  \setlength{\SidebarWidthR}{0cm}
+}
+
 \newcommand{\DrawSidebarVerticalLine}{
   \begin{tikzpicture}[overlay, remember picture]
     \path (current page.west);
@@ -354,6 +476,31 @@
       \begin{minipage}{\SidebarWidth}
         \centering
         \@sideMultiTitle
+      \end{minipage}
+    };
+  \end{tikzpicture}%
+}
+
+\newcommand{\DrawSidebarVerticalLineR}{
+  \begin{tikzpicture}[overlay, remember picture]
+    \path (current page.east);
+    \pgfgetlastxy{\eastx}{\dummy};
+    \path (0,0);
+    \pgfgetlastxy{\dummyx}{\currenty}
+    \path (current page.south);
+    \pgfgetlastxy{\dummyx}{\southy}
+    \path (current page.north);
+    \pgfgetlastxy{\dummyx}{\northy}
+    \pgfmathsetlengthmacro{\w}{\SidebarWidthR}
+    \pgfmathsetlengthmacro{\m}{\PageMargin}
+    \pgfmathsetlengthmacro{\l}{\eastx - \m - \w}
+    \pgfmathsetlengthmacro{\barcx}{\eastx - \m - \w / 2}
+    \pgfmathsetlengthmacro{\barcy}{(\southy + \northy) / 2}
+    \draw (\l, {\southy - \currenty + \m}) -- (\l, {\northy + \currenty - \m});
+    \node at (\barcx, \barcy) {
+      \begin{minipage}{\SidebarWidthR}
+        \centering
+        \@sideMultiTitleR
       \end{minipage}
     };
   \end{tikzpicture}%
@@ -470,7 +617,7 @@
     B & D
   }
   \TableRow{>{\hsize=0.5\hsize}X|X}{
-    A & C：
+    A & C
   }
   \TableRow{l|X|X}{
     行1 & 内容A & 内容B
@@ -506,7 +653,8 @@
       此外，& 也可以
     }
     \TableRow{X|X}{
-      在侧边栏中 & 添加表格。
+      \centering 在侧边栏中 \newline  % 在表格中使用 \newline 换行
+      添加表格。 &
     }
     \vspace{0.5em}
 
@@ -516,5 +664,14 @@
 
     使用分隔线。
   \end{SidebarTable}
+
+  \begin{SidebarTableR}[h]{
+      \centering
+      照片
+
+      位置
+    }{4cm}
+    最后，还有侧边栏在右侧的版本\texttt{SidebarTableR} 。这也许可以用来放照片
+  \end{SidebarTableR}
 \end{TableFrame}
 \end{document}
