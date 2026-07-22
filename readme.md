@@ -45,13 +45,13 @@ xelatex main.tex
 给正文内容每页都加上框。
 
 ```latex
-\begin{TablePages}
+\begin{TableFrame}
     这里是正文...可以写很长...可以跨页...
     \begin{itemize}
       \item 支持列表
       \item 支持公式 $E=mc^2$
     \end{itemize}
-\end{TablePages}
+\end{TableFrame}
 ```
 
 ### 生成表格行 (`\TableRow`)
@@ -73,7 +73,7 @@ xelatex main.tex
 
 ```latex
 % 内容可以跨页。每页自动绘制侧边栏竖线。标题在第一页的位置显示。
-% 语法: \begin{SidebarTable}{跨页时的标题}{标题}{侧边栏宽度}
+% 语法: \begin{SidebarTable}[跨页时的标题]{标题}{侧边栏宽度}
 %       ...主体内容...
 %       \end{SidebarTable}
 \begin{SidebarTable}[
@@ -87,12 +87,12 @@ xelatex main.tex
 
 此外，还有一个侧边栏在右侧的版本 `SidebarTableR`，语法完全一致。
 
-### 分割线（`\vspaceSepLine`)
+### 分割线（`\TableSepLine`)
 
 画一条分割线。
 
 ```latex
-\vspaceSepLine
+\TableSepLine
 ```
 
 ---
@@ -103,4 +103,4 @@ xelatex main.tex
 
 MIT License.
 
-你可以随意修改此模板用于你的毕业论文、开题报告或作业。
+你可以随意修改此模板用于你的毕业论文、开题报告或别的任何你喜欢的文档。
