@@ -55,11 +55,16 @@
 \newcounter{TableFrameLabelCounter}
 
 \newcommand{\RememberTablePosition}[1]{%
-  \leavevmode
-  \zsavepos{#1}%
-  \hbox{%
-    \vrule width 1sp height 1sp depth 0pt%
-  }%
+  \ifvmode
+    \begingroup
+    \setbox0=\hbox{\zsavepos{#1}}%
+    \nointerlineskip
+    \box0
+    \nointerlineskip
+    \endgroup
+  \else
+    \zsavepos{#1}%
+  \fi
 }
 
 % 侧边栏
@@ -69,6 +74,9 @@
 \newcounter{SidebarEnvCounter}
 \def\currentSidebarState{0}% 当前页输出时使用的状态（0=关，1=开）
 \def\pendingSidebarState{0}% 用户设定的待生效状态
+\def\SidebarStartLabel{}
+\def\SideFirstTitle{}
+\newif\ifSidebarHeadOnThisPage
 \newcommand{\EnableSidebar}{%
   \global\def\pendingSidebarState{1}%
   % 注意：不修改 \currentSidebarState
@@ -80,6 +88,7 @@
 \newcommand{\ResetSidebar}{%
   \global\def\pendingSidebarState{0}%
   \global\def\currentSidebarState{0}%
+  \global\SidebarHeadOnThisPagefalse
 }
 
 % 右侧侧边栏
@@ -88,6 +97,9 @@
 \newcounter{SidebarEnvCounterR}
 \def\currentSidebarStateR{0}
 \def\pendingSidebarStateR{0}
+\def\SidebarStartLabelR{}
+\def\SideFirstTitleR{}
+\newif\ifSidebarHeadOnThisPageR
 \newcommand{\EnableSidebarR}{%
   \global\def\pendingSidebarStateR{1}%
 }
@@ -98,6 +110,7 @@
 \newcommand{\ResetSidebarR}{%
   \global\def\pendingSidebarStateR{0}%
   \global\def\currentSidebarStateR{0}%
+  \global\SidebarHeadOnThisPageRfalse
 }
 
 % 页面外框
@@ -116,6 +129,12 @@
 }
 
 % 绘制全页外框 (Hook到每页输出)
+\newcommand{\DrawEmptyOverlayPicture}{%
+  \begin{tikzpicture}[overlay, remember picture]
+    \path (current page.south west);
+  \end{tikzpicture}%
+}
+
 \newcommand{\DrawFullPageFrame}{%
   \begin{tikzpicture}[overlay, remember picture]
     \draw
@@ -127,6 +146,7 @@
 
 % 页面外框首半帧（从当前位置向下画到页底，加顶横线）
 \newcounter{PageEnvCounter}
+\def\PageFrameStartLabel{}
 \newcommand{\DrawPageFrameHeadFrom}[1]{%
   \begin{tikzpicture}[overlay, remember picture]
     \draw
@@ -149,24 +169,46 @@
 }
 
 \AtBeginShipout{%
-  \ifnum\currentPageFrameState=1
   \ifnum\pendingPageFrameState=1
-  \AtBeginShipoutAddToBox{\DrawFullPageFrame}%
+    \ifnum\currentPageFrameState=1
+      \AtBeginShipoutAddToBox{\DrawFullPageFrame}%
+    \else
+      \AtBeginShipoutAddToBox{\DrawPageFrameHeadFrom{\PageFrameStartLabel}}%
+    \fi
+  \else
+    \AtBeginShipoutAddToBox{\DrawEmptyOverlayPicture}%
   \fi
-  \fi
-  \ifnum\currentSidebarState=1
   \ifnum\pendingSidebarState=1
-  \AtBeginShipoutAddToBox{\DrawSidebarVerticalLine}%
+    \ifSidebarHeadOnThisPage
+      \AtBeginShipoutAddToBox{\DrawSidebarHeadFrom{\SidebarStartLabel}}%
+    \else
+      \ifnum\currentSidebarState=1
+        \AtBeginShipoutAddToBox{\DrawSidebarVerticalLine}%
+      \else
+        \AtBeginShipoutAddToBox{\DrawSidebarHeadFrom{\SidebarStartLabel}}%
+      \fi
+    \fi
+  \else
+    \AtBeginShipoutAddToBox{\DrawEmptyOverlayPicture}%
   \fi
-  \fi
-  \ifnum\currentSidebarStateR=1
   \ifnum\pendingSidebarStateR=1
-  \AtBeginShipoutAddToBox{\DrawSidebarVerticalLineR}%
-  \fi
+    \ifSidebarHeadOnThisPageR
+      \AtBeginShipoutAddToBox{\DrawSidebarHeadFromR{\SidebarStartLabelR}}%
+    \else
+      \ifnum\currentSidebarStateR=1
+        \AtBeginShipoutAddToBox{\DrawSidebarVerticalLineR}%
+      \else
+        \AtBeginShipoutAddToBox{\DrawSidebarHeadFromR{\SidebarStartLabelR}}%
+      \fi
+    \fi
+  \else
+    \AtBeginShipoutAddToBox{\DrawEmptyOverlayPicture}%
   \fi
   \xdef\currentSidebarState{\pendingSidebarState}%
   \xdef\currentPageFrameState{\pendingPageFrameState}%
   \xdef\currentSidebarStateR{\pendingSidebarStateR}%
+  \global\SidebarHeadOnThisPagefalse
+  \global\SidebarHeadOnThisPageRfalse
 }
 
 % 自动间距配置
@@ -178,6 +220,7 @@
 \TableAutoSpacingState=0
 \newif\ifTableAutoSpacingActive
 \newif\ifTableAutoSpacingSuppressPara
+\newif\ifTableSkipNextSepLine
 
 \newcommand{\TableAutoSpacingReset}{%
   \global\TableAutoSpacingState=0\relax
@@ -198,6 +241,7 @@
   \vadjust pre{\vskip\TableBlockSkip}%
   \fi
   \TableAutoSpacingMarkText
+  \global\TableSkipNextSepLinefalse
   \fi
   \fi
 }
@@ -236,11 +280,178 @@
   \endgroup
 }
 
+\newcommand{\FullRawSepLine}{%
+  \begingroup
+  \TableAutoSpacingSuppressParatrue
+  \par
+  \nointerlineskip
+  \noindent
+  \begin{tikzpicture}[overlay, remember picture]
+    \pgfmathsetlengthmacro{\m}{\PageMargin}
+    \path (current page.west);
+    \pgfgetlastxy{\westx}{\westy}
+    \path (current page.east);
+    \pgfgetlastxy{\eastx}{\easty}
+    \draw ({\westx + \m}, 0) -- ({\eastx - \m}, 0);
+  \end{tikzpicture}
+  \par
+  \nointerlineskip
+  \endgroup
+}
+
 % 命令：绘制横向分割线（状态感知）
 \newcommand{\SepLine}{%
-  \TableAutoSpacingBeforeRule
-  \RawSepLine
+  \ifTableSkipNextSepLine
+    \global\TableSkipNextSepLinefalse
+  \else
+    \TableAutoSpacingBeforeRule
+    \RawSepLine
+  \fi
   \TableAutoSpacingMarkRule
+}
+
+\NewDocumentCommand{\DrawSidebarSegment}{m m m +m}{%
+  \begin{tikzpicture}[overlay, remember picture]
+    \coordinate (sideLineStart) at
+    ([xshift={\dimexpr\PageMargin+#3\relax},
+      yshift={\dimexpr\zposy{#1}sp\relax}]current page.south west);
+    \coordinate (sideLineEnd) at
+    ([xshift={\dimexpr\PageMargin+#3\relax},
+      yshift={\dimexpr\zposy{#2}sp\relax}]current page.south west);
+    \coordinate (sideTitleStart) at
+    ([xshift={\dimexpr\PageMargin+#3/2\relax},
+      yshift={\dimexpr\zposy{#1}sp\relax}]current page.south west);
+    \coordinate (sideTitleEnd) at
+    ([xshift={\dimexpr\PageMargin+#3/2\relax},
+      yshift={\dimexpr\zposy{#2}sp\relax}]current page.south west);
+    \draw (sideLineStart) -- (sideLineEnd);
+    \node at ($(sideTitleStart)!0.5!(sideTitleEnd)$) {
+      \begin{minipage}{#3}
+        #4
+      \end{minipage}
+    };
+  \end{tikzpicture}%
+}
+
+\NewDocumentCommand{\DrawSidebarTailTo}{m m +m}{%
+  \begin{tikzpicture}[overlay, remember picture]
+    \coordinate (sideLineTop) at
+    ([xshift={\dimexpr\PageMargin+#2\relax},
+    yshift=-\PageMargin]current page.north west);
+    \coordinate (sideLineEnd) at
+    ([xshift={\dimexpr\PageMargin+#2\relax},
+      yshift={\dimexpr\zposy{#1}sp\relax}]current page.south west);
+    \coordinate (sideTitleTop) at
+    ([xshift={\dimexpr\PageMargin+#2/2\relax},
+    yshift=-\PageMargin]current page.north west);
+    \coordinate (sideTitleEnd) at
+    ([xshift={\dimexpr\PageMargin+#2/2\relax},
+      yshift={\dimexpr\zposy{#1}sp\relax}]current page.south west);
+    \draw (sideLineTop) -- (sideLineEnd);
+    \node at ($(sideTitleTop)!0.5!(sideTitleEnd)$) {
+      \begin{minipage}{#2}
+        #3
+      \end{minipage}
+    };
+  \end{tikzpicture}%
+}
+
+\NewDocumentCommand{\DrawSidebarSegmentR}{m m m +m}{%
+  \begin{tikzpicture}[overlay, remember picture]
+    \coordinate (sideRLineStart) at
+    ([xshift={\dimexpr-\PageMargin-#3\relax},
+      yshift={\dimexpr\zposy{#1}sp\relax}]current page.south east);
+    \coordinate (sideRLineEnd) at
+    ([xshift={\dimexpr-\PageMargin-#3\relax},
+      yshift={\dimexpr\zposy{#2}sp\relax}]current page.south east);
+    \coordinate (sideRTitleStart) at
+    ([xshift={\dimexpr-\PageMargin-#3/2\relax},
+      yshift={\dimexpr\zposy{#1}sp\relax}]current page.south east);
+    \coordinate (sideRTitleEnd) at
+    ([xshift={\dimexpr-\PageMargin-#3/2\relax},
+      yshift={\dimexpr\zposy{#2}sp\relax}]current page.south east);
+    \draw (sideRLineStart) -- (sideRLineEnd);
+    \node at ($(sideRTitleStart)!0.5!(sideRTitleEnd)$) {
+      \begin{minipage}{#3}
+        #4
+      \end{minipage}
+    };
+  \end{tikzpicture}%
+}
+
+\NewDocumentCommand{\DrawSidebarTailToR}{m m +m}{%
+  \begin{tikzpicture}[overlay, remember picture]
+    \coordinate (sideRLineTop) at
+    ([xshift={\dimexpr-\PageMargin-#2\relax},
+    yshift=-\PageMargin]current page.north east);
+    \coordinate (sideRLineEnd) at
+    ([xshift={\dimexpr-\PageMargin-#2\relax},
+      yshift={\dimexpr\zposy{#1}sp\relax}]current page.south east);
+    \coordinate (sideRTitleTop) at
+    ([xshift={\dimexpr-\PageMargin-#2/2\relax},
+    yshift=-\PageMargin]current page.north east);
+    \coordinate (sideRTitleEnd) at
+    ([xshift={\dimexpr-\PageMargin-#2/2\relax},
+      yshift={\dimexpr\zposy{#1}sp\relax}]current page.south east);
+    \draw (sideRLineTop) -- (sideRLineEnd);
+    \node at ($(sideRTitleTop)!0.5!(sideRTitleEnd)$) {
+      \begin{minipage}{#2}
+        #3
+      \end{minipage}
+    };
+  \end{tikzpicture}%
+}
+
+\NewDocumentCommand{\ScheduleSidebarSegment}{m m m +m}{%
+  \begingroup
+  \edef\ScheduleSidebarCode{%
+    \endgroup
+    \noexpand\AtBeginShipoutNext{%
+      \noexpand\AtBeginShipoutAddToBox{%
+        \noexpand\DrawSidebarSegment{#1}{#2}{#3}{\unexpanded{#4}}%
+      }%
+    }%
+  }%
+  \ScheduleSidebarCode
+}
+
+\NewDocumentCommand{\ScheduleSidebarTail}{m m +m}{%
+  \begingroup
+  \edef\ScheduleSidebarCode{%
+    \endgroup
+    \noexpand\AtBeginShipoutNext{%
+      \noexpand\AtBeginShipoutAddToBox{%
+        \noexpand\DrawSidebarTailTo{#1}{#2}{\unexpanded{#3}}%
+      }%
+    }%
+  }%
+  \ScheduleSidebarCode
+}
+
+\NewDocumentCommand{\ScheduleSidebarSegmentR}{m m m +m}{%
+  \begingroup
+  \edef\ScheduleSidebarCode{%
+    \endgroup
+    \noexpand\AtBeginShipoutNext{%
+      \noexpand\AtBeginShipoutAddToBox{%
+        \noexpand\DrawSidebarSegmentR{#1}{#2}{#3}{\unexpanded{#4}}%
+      }%
+    }%
+  }%
+  \ScheduleSidebarCode
+}
+
+\NewDocumentCommand{\ScheduleSidebarTailR}{m m +m}{%
+  \begingroup
+  \edef\ScheduleSidebarCode{%
+    \endgroup
+    \noexpand\AtBeginShipoutNext{%
+      \noexpand\AtBeginShipoutAddToBox{%
+        \noexpand\DrawSidebarTailToR{#1}{#2}{\unexpanded{#3}}%
+      }%
+    }%
+  }%
+  \ScheduleSidebarCode
 }
 
 % 绘制横向分割线；在正文中使用时会自动处理前后间距。
@@ -288,7 +499,7 @@
   \RememberTablePosition{pageStart\thePageEnvCounter}%
   \ifsamePage{TableFrameStart\arabic{TableFrameLabelCounter}}{TableFrameEnd\arabic{TableFrameLabelCounter}}{%
   }{%
-    \DrawPageFrameHeadFrom{pageStart\thePageEnvCounter}%
+    \xdef\PageFrameStartLabel{pageStart\thePageEnvCounter}%
     \EnablePageFrame
   }%
   \TableAutoSpacingSuppressParafalse
@@ -329,6 +540,7 @@
   \stepcounter{SidebarTableLabelCounter}
   \stepcounter{SidebarEnvCounter}%
   \ResetSidebar
+  \gdef\SideFirstTitle{#2}%
   \gdef\SideMultiTitle{#2}%
   \def\SideOptionalTitle{#1}%
   \ifx\SideOptionalTitle\empty\else
@@ -341,31 +553,10 @@
   \noindent
   \setlength{\SidebarWidth}{#3}
   \RememberTablePosition{sidebarStart\theSidebarEnvCounter}%
-
   \ifsamePage{SidebarTableStart\arabic{SidebarTableLabelCounter}}{SidebarTableEnd\arabic{SidebarTableLabelCounter}}{%
   }{%
-    \begin{tikzpicture}[overlay, remember picture]
-      \coordinate (sideLineStart) at
-      ([xshift={\dimexpr\PageMargin+\SidebarWidth\relax},
-        yshift={\dimexpr\zposy{sidebarStart\theSidebarEnvCounter}sp\relax}]current
-      page.south west);
-      \coordinate (sideLineBottom) at
-      ([xshift={\dimexpr\PageMargin+\SidebarWidth\relax},
-      yshift=\PageMargin]current page.south west);
-      \coordinate (sideTitleStart) at
-      ([xshift={\dimexpr\PageMargin+\SidebarWidth/2\relax},
-        yshift={\dimexpr\zposy{sidebarStart\theSidebarEnvCounter}sp\relax}]current
-      page.south west);
-      \coordinate (sideTitleBottom) at
-      ([xshift={\dimexpr\PageMargin+\SidebarWidth/2\relax},
-      yshift=\PageMargin]current page.south west);
-      \draw (sideLineStart) -- (sideLineBottom);
-      \node at ($(sideTitleStart)!0.5!(sideTitleBottom)$) {
-        \begin{minipage}{#3}
-          #2
-        \end{minipage}
-      };
-    \end{tikzpicture}%
+    \xdef\SidebarStartLabel{sidebarStart\theSidebarEnvCounter}%
+    \global\SidebarHeadOnThisPagetrue
     \EnableSidebar%
   }%
   \TableAutoSpacingSuppressParafalse
@@ -374,78 +565,40 @@
   }{%
     \TableAutoSpacingBeforeRule
     \pageLabel{SidebarTableEnd\arabic{SidebarTableLabelCounter}}
+    \RememberTablePosition{sidebarEnd\theSidebarEnvCounter}%
   \end{adjustwidth}%
-  \RememberTablePosition{sidebarEnd\theSidebarEnvCounter}%
+  \par
+  \nointerlineskip
   \ifsamePage{SidebarTableStart\arabic{SidebarTableLabelCounter}}{SidebarTableEnd\arabic{SidebarTableLabelCounter}}{%
     \DisableSidebar%
-    \begin{tikzpicture}[overlay, remember picture]
-      \coordinate (sideLineStart) at
-      ([xshift={\dimexpr\PageMargin+\SidebarWidth\relax},
-        yshift={\dimexpr\zposy{sidebarStart\theSidebarEnvCounter}sp\relax}]current
-      page.south west);
-      \coordinate (sideLineEnd) at
-      ([xshift={\dimexpr\PageMargin+\SidebarWidth\relax},
-        yshift={\dimexpr\zposy{sidebarEnd\theSidebarEnvCounter}sp\relax}]current
-      page.south west);
-      \coordinate (sideTitleStart) at
-      ([xshift={\dimexpr\PageMargin+\SidebarWidth/2\relax},
-        yshift={\dimexpr\zposy{sidebarStart\theSidebarEnvCounter}sp\relax}]current
-      page.south west);
-      \coordinate (sideTitleEnd) at
-      ([xshift={\dimexpr\PageMargin+\SidebarWidth/2\relax},
-        yshift={\dimexpr\zposy{sidebarEnd\theSidebarEnvCounter}sp\relax}]current
-      page.south west);
-      \draw (sideLineStart) -- (sideLineEnd);
-      \draw ([xshift=\PageMargin,
-        yshift={\dimexpr\zposy{sidebarEnd\theSidebarEnvCounter}sp\relax}]current
-      page.south west)
-      -- ([xshift=-\PageMargin,
-        yshift={\dimexpr\zposy{sidebarEnd\theSidebarEnvCounter}sp\relax}]current
-      page.south east);
-      \node at ($(sideTitleStart)!0.5!(sideTitleEnd)$) {
-        \begin{minipage}{#3}
-          #2
-        \end{minipage}
-      };
-    \end{tikzpicture}%
+    \ScheduleSidebarSegment
+      {sidebarStart\theSidebarEnvCounter}
+      {sidebarEnd\theSidebarEnvCounter}
+      {\the\SidebarWidth}
+      {#2}%
     \TableAutoSpacingMarkRule
   }{%
     \DisableSidebar%
-    \begin{tikzpicture}[overlay, remember picture]
-      \coordinate (sideLineTop) at
-      ([xshift={\dimexpr\PageMargin+\SidebarWidth\relax},
-      yshift=-\PageMargin]current page.north west);
-      \coordinate (sideLineEnd) at
-      ([xshift={\dimexpr\PageMargin+\SidebarWidth\relax},
-        yshift={\dimexpr\zposy{sidebarEnd\theSidebarEnvCounter}sp\relax}]current
-      page.south west);
-      \coordinate (sideTitleTop) at
-      ([xshift={\dimexpr\PageMargin+\SidebarWidth/2\relax},
-      yshift=-\PageMargin]current page.north west);
-      \coordinate (sideTitleEnd) at
-      ([xshift={\dimexpr\PageMargin+\SidebarWidth/2\relax},
-        yshift={\dimexpr\zposy{sidebarEnd\theSidebarEnvCounter}sp\relax}]current
-      page.south west);
-      \draw (sideLineTop) -- (sideLineEnd);
-      \draw ([xshift=\PageMargin,
-        yshift={\dimexpr\zposy{sidebarEnd\theSidebarEnvCounter}sp\relax}]current
-      page.south west)
-      -- ([xshift=-\PageMargin,
-        yshift={\dimexpr\zposy{sidebarEnd\theSidebarEnvCounter}sp\relax}]current
-      page.south east);
-      \node at ($(sideTitleTop)!0.5!(sideTitleEnd)$) {
-        \begin{minipage}{#3}
-          \SideMultiTitle
-        \end{minipage}
-      };
-    \end{tikzpicture}%
+    \ifx\SideOptionalTitle\empty
+      \ScheduleSidebarTail
+        {sidebarEnd\theSidebarEnvCounter}
+        {\the\SidebarWidth}
+        {#2}%
+    \else
+      \ScheduleSidebarTail
+        {sidebarEnd\theSidebarEnvCounter}
+        {\the\SidebarWidth}
+        {#1}%
+    \fi
     \TableAutoSpacingMarkRule
   }%
   \DisableSidebar
-  \par
-  \nointerlineskip
   \global\SidebarWidth=0cm\relax
   \setlength{\SidebarWidth}{0cm}
+  \FullRawSepLine
+  \TableAutoSpacingMarkRule
+  \global\TableSkipNextSepLinetrue
+  \ignorespacesafterend
 }
 
 \newcounter{SidebarTableLabelCounterR}
@@ -453,6 +606,7 @@
   \stepcounter{SidebarTableLabelCounterR}
   \stepcounter{SidebarEnvCounterR}%
   \ResetSidebarR
+  \gdef\SideFirstTitleR{#2}%
   \gdef\SideMultiTitleR{#2}%
   \def\SideOptionalTitleR{#1}%
   \ifx\SideOptionalTitleR\empty\else
@@ -465,31 +619,10 @@
   \noindent
   \setlength{\SidebarWidthR}{#3}
   \RememberTablePosition{sidebarRStart\theSidebarEnvCounterR}%
-
   \ifsamePage{SidebarTableRStart\arabic{SidebarTableLabelCounterR}}{SidebarTableREnd\arabic{SidebarTableLabelCounterR}}{%
   }{%
-    \begin{tikzpicture}[overlay, remember picture]
-      \coordinate (sideRLineStart) at
-      ([xshift={\dimexpr-\PageMargin-\SidebarWidthR\relax},
-        yshift={\dimexpr\zposy{sidebarRStart\theSidebarEnvCounterR}sp\relax}]current
-      page.south east);
-      \coordinate (sideRLineBottom) at
-      ([xshift={\dimexpr-\PageMargin-\SidebarWidthR\relax},
-      yshift=\PageMargin]current page.south east);
-      \coordinate (sideRTitleStart) at
-      ([xshift={\dimexpr-\PageMargin-\SidebarWidthR/2\relax},
-        yshift={\dimexpr\zposy{sidebarRStart\theSidebarEnvCounterR}sp\relax}]current
-      page.south east);
-      \coordinate (sideRTitleBottom) at
-      ([xshift={\dimexpr-\PageMargin-\SidebarWidthR/2\relax},
-      yshift=\PageMargin]current page.south east);
-      \draw (sideRLineStart) -- (sideRLineBottom);
-      \node at ($(sideRTitleStart)!0.5!(sideRTitleBottom)$) {
-        \begin{minipage}{#3}
-          #2
-        \end{minipage}
-      };
-    \end{tikzpicture}%
+    \xdef\SidebarStartLabelR{sidebarRStart\theSidebarEnvCounterR}%
+    \global\SidebarHeadOnThisPageRtrue
     \EnableSidebarR%
   }%
   \TableAutoSpacingSuppressParafalse
@@ -498,78 +631,86 @@
   }{%
     \TableAutoSpacingBeforeRule
     \pageLabel{SidebarTableREnd\arabic{SidebarTableLabelCounterR}}
+    \RememberTablePosition{sidebarREnd\theSidebarEnvCounterR}%
   \end{adjustwidth}%
-  \RememberTablePosition{sidebarREnd\theSidebarEnvCounterR}%
+  \par
+  \nointerlineskip
   \ifsamePage{SidebarTableRStart\arabic{SidebarTableLabelCounterR}}{SidebarTableREnd\arabic{SidebarTableLabelCounterR}}{%
     \DisableSidebarR%
-    \begin{tikzpicture}[overlay, remember picture]
-      \coordinate (sideRLineStart) at
-      ([xshift={\dimexpr-\PageMargin-\SidebarWidthR\relax},
-        yshift={\dimexpr\zposy{sidebarRStart\theSidebarEnvCounterR}sp\relax}]current
-      page.south east);
-      \coordinate (sideRLineEnd) at
-      ([xshift={\dimexpr-\PageMargin-\SidebarWidthR\relax},
-        yshift={\dimexpr\zposy{sidebarREnd\theSidebarEnvCounterR}sp\relax}]current
-      page.south east);
-      \coordinate (sideRTitleStart) at
-      ([xshift={\dimexpr-\PageMargin-\SidebarWidthR/2\relax},
-        yshift={\dimexpr\zposy{sidebarRStart\theSidebarEnvCounterR}sp\relax}]current
-      page.south east);
-      \coordinate (sideRTitleEnd) at
-      ([xshift={\dimexpr-\PageMargin-\SidebarWidthR/2\relax},
-        yshift={\dimexpr\zposy{sidebarREnd\theSidebarEnvCounterR}sp\relax}]current
-      page.south east);
-      \draw (sideRLineStart) -- (sideRLineEnd);
-      \draw ([xshift=\PageMargin,
-        yshift={\dimexpr\zposy{sidebarREnd\theSidebarEnvCounterR}sp\relax}]current
-      page.south west)
-      -- ([xshift=-\PageMargin,
-        yshift={\dimexpr\zposy{sidebarREnd\theSidebarEnvCounterR}sp\relax}]current
-      page.south east);
-      \node at ($(sideRTitleStart)!0.5!(sideRTitleEnd)$) {
-        \begin{minipage}{#3}
-          #2
-        \end{minipage}
-      };
-    \end{tikzpicture}%
+    \ScheduleSidebarSegmentR
+      {sidebarRStart\theSidebarEnvCounterR}
+      {sidebarREnd\theSidebarEnvCounterR}
+      {\the\SidebarWidthR}
+      {#2}%
     \TableAutoSpacingMarkRule
   }{%
     \DisableSidebarR%
-    \begin{tikzpicture}[overlay, remember picture]
-      \coordinate (sideRLineTop) at
-      ([xshift={\dimexpr-\PageMargin-\SidebarWidthR\relax},
-      yshift=-\PageMargin]current page.north east);
-      \coordinate (sideRLineEnd) at
-      ([xshift={\dimexpr-\PageMargin-\SidebarWidthR\relax},
-        yshift={\dimexpr\zposy{sidebarREnd\theSidebarEnvCounterR}sp\relax}]current
-      page.south east);
-      \coordinate (sideRTitleTop) at
-      ([xshift={\dimexpr-\PageMargin-\SidebarWidthR/2\relax},
-      yshift=-\PageMargin]current page.north east);
-      \coordinate (sideRTitleEnd) at
-      ([xshift={\dimexpr-\PageMargin-\SidebarWidthR/2\relax},
-        yshift={\dimexpr\zposy{sidebarREnd\theSidebarEnvCounterR}sp\relax}]current
-      page.south east);
-      \draw (sideRLineTop) -- (sideRLineEnd);
-      \draw ([xshift=\PageMargin,
-        yshift={\dimexpr\zposy{sidebarREnd\theSidebarEnvCounterR}sp\relax}]current
-      page.south west)
-      -- ([xshift=-\PageMargin,
-        yshift={\dimexpr\zposy{sidebarREnd\theSidebarEnvCounterR}sp\relax}]current
-      page.south east);
-      \node at ($(sideRTitleTop)!0.5!(sideRTitleEnd)$) {
-        \begin{minipage}{#3}
-          \SideMultiTitleR
-        \end{minipage}
-      };
-    \end{tikzpicture}%
+    \ifx\SideOptionalTitleR\empty
+      \ScheduleSidebarTailR
+        {sidebarREnd\theSidebarEnvCounterR}
+        {\the\SidebarWidthR}
+        {#2}%
+    \else
+      \ScheduleSidebarTailR
+        {sidebarREnd\theSidebarEnvCounterR}
+        {\the\SidebarWidthR}
+        {#1}%
+    \fi
     \TableAutoSpacingMarkRule
   }%
   \DisableSidebarR
-  \par
-  \nointerlineskip
   \global\SidebarWidthR=0cm\relax
   \setlength{\SidebarWidthR}{0cm}
+  \FullRawSepLine
+  \TableAutoSpacingMarkRule
+  \global\TableSkipNextSepLinetrue
+  \ignorespacesafterend
+}
+
+\newcommand{\DrawSidebarHeadFrom}[1]{%
+  \begin{tikzpicture}[overlay, remember picture]
+    \coordinate (sideLineStart) at
+    ([xshift={\dimexpr\PageMargin+\SidebarWidth\relax},
+      yshift={\dimexpr\zposy{#1}sp\relax}]current page.south west);
+    \coordinate (sideLineBottom) at
+    ([xshift={\dimexpr\PageMargin+\SidebarWidth\relax},
+    yshift=\PageMargin]current page.south west);
+    \coordinate (sideTitleStart) at
+    ([xshift={\dimexpr\PageMargin+\SidebarWidth/2\relax},
+      yshift={\dimexpr\zposy{#1}sp\relax}]current page.south west);
+    \coordinate (sideTitleBottom) at
+    ([xshift={\dimexpr\PageMargin+\SidebarWidth/2\relax},
+    yshift=\PageMargin]current page.south west);
+    \draw (sideLineStart) -- (sideLineBottom);
+    \node at ($(sideTitleStart)!0.5!(sideTitleBottom)$) {
+      \begin{minipage}{\SidebarWidth}
+        \SideFirstTitle
+      \end{minipage}
+    };
+  \end{tikzpicture}%
+}
+
+\newcommand{\DrawSidebarHeadFromR}[1]{%
+  \begin{tikzpicture}[overlay, remember picture]
+    \coordinate (sideRLineStart) at
+    ([xshift={\dimexpr-\PageMargin-\SidebarWidthR\relax},
+      yshift={\dimexpr\zposy{#1}sp\relax}]current page.south east);
+    \coordinate (sideRLineBottom) at
+    ([xshift={\dimexpr-\PageMargin-\SidebarWidthR\relax},
+    yshift=\PageMargin]current page.south east);
+    \coordinate (sideRTitleStart) at
+    ([xshift={\dimexpr-\PageMargin-\SidebarWidthR/2\relax},
+      yshift={\dimexpr\zposy{#1}sp\relax}]current page.south east);
+    \coordinate (sideRTitleBottom) at
+    ([xshift={\dimexpr-\PageMargin-\SidebarWidthR/2\relax},
+    yshift=\PageMargin]current page.south east);
+    \draw (sideRLineStart) -- (sideRLineBottom);
+    \node at ($(sideRTitleStart)!0.5!(sideRTitleBottom)$) {
+      \begin{minipage}{\SidebarWidthR}
+        \SideFirstTitleR
+      \end{minipage}
+    };
+  \end{tikzpicture}%
 }
 
 \newcommand{\DrawSidebarVerticalLine}{
@@ -713,8 +854,6 @@
 \texttt{TableFrame}环境外面的内容不带框。
 
 后面是更多的一些示例。
-
-\clearpage
 
 \begin{TableFrame}
 
