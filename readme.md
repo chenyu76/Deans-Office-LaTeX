@@ -7,15 +7,13 @@
 
 ## 编译效果示例
 
-[在这里下载查看PDF](https://github.com/user-attachments/files/30235446/main.pdf)
+[在这里下载查看PDF](https://github.com/user-attachments/files/30291254/main.pdf)，或直接查看下面的预览图：
 
-<img width="595" height="842" alt="Page 1" src="https://github.com/user-attachments/assets/3d369d2e-323e-4d40-ba00-58b56ad23a45" />
+<img width="595" height="842" alt="page 1" src="https://github.com/user-attachments/assets/7b5fcd14-5257-429b-8935-b32c49e3ec03" />
 
-<img width="595" height="842" alt="Page 2" src="https://github.com/user-attachments/assets/f6c4465e-ad3f-4035-8462-82a4d69f39b5" />
+<img width="595" height="842" alt="page 2" src="https://github.com/user-attachments/assets/b7919918-2fde-4870-a4a3-f67452632750" />
 
-<img width="595" height="842" alt="Page 3" src="https://github.com/user-attachments/assets/3e78c110-35a5-484c-8c22-b4a0e968b368" />
-
-<img width="595" height="842" alt="Page 4" src="https://github.com/user-attachments/assets/a9ebf1a1-d041-4025-9208-5749cfaf5504" />
+<img width="595" height="842" alt="page 3" src="https://github.com/user-attachments/assets/c6a9df33-4169-432e-be12-75fe4e8e6fef" />
 
 ## 简介
 
