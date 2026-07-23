@@ -130,13 +130,6 @@
   \global\def\currentPageFrameState{0}%
 }
 
-% 绘制全页外框 (Hook到每页输出)
-\newcommand{\DrawEmptyOverlayPicture}{%
-  \begin{tikzpicture}[overlay, remember picture]
-    \path (current page.south west);
-  \end{tikzpicture}%
-}
-
 \newcommand{\DrawFullPageFrame}{%
   \begin{tikzpicture}[overlay, remember picture]
     \draw
@@ -197,13 +190,6 @@
   \AtBeginShipoutAddToBox{\DrawSidebarVerticalLine{R}}%
   \else
   \AtBeginShipoutAddToBox{\DrawSidebarHeadFrom{R}{\SidebarStartLabelR}}%
-  \fi
-  \fi
-  \fi
-  \ifnum\pendingPageFrameState=0
-  \ifnum\pendingSidebarState=0
-  \ifnum\pendingSidebarStateR=0
-  \AtBeginShipoutAddToBox{\DrawEmptyOverlayPicture}%
   \fi
   \fi
   \fi
