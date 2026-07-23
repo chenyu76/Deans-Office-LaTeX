@@ -25,6 +25,8 @@
 \usepackage{atbegshi}   % 每页画框
 \usepackage{changepage} % 局部调整页边距，引入 adjustwidth 环境
 \usepackage{lipsum}     % 插入示例内容
+\usepackage{float}      % 让表格不浮动
+\usepackage{graphicx}   % 插入图片
 \usepackage{zref-savepos}
 
 % 计算是单页排版还是多页排版用到的奇妙工具
@@ -310,15 +312,15 @@
 
 \newcommand{\SetupSidebarSide}[2]{%
   \if L#1
-    \edef\SidebarSideAnchor{south west}%
-    \edef\SidebarSideNAnchor{north west}%
-    \edef\SidebarSideLineShift{\dimexpr\PageMargin+#2\relax}%
-    \edef\SidebarSideTitleShift{\dimexpr\PageMargin+#2/2\relax}%
+  \edef\SidebarSideAnchor{south west}%
+  \edef\SidebarSideNAnchor{north west}%
+  \edef\SidebarSideLineShift{\dimexpr\PageMargin+#2\relax}%
+  \edef\SidebarSideTitleShift{\dimexpr\PageMargin+#2/2\relax}%
   \else
-    \edef\SidebarSideAnchor{south east}%
-    \edef\SidebarSideNAnchor{north east}%
-    \edef\SidebarSideLineShift{\dimexpr-\PageMargin-#2\relax}%
-    \edef\SidebarSideTitleShift{\dimexpr-\PageMargin-#2/2\relax}%
+  \edef\SidebarSideAnchor{south east}%
+  \edef\SidebarSideNAnchor{north east}%
+  \edef\SidebarSideLineShift{\dimexpr-\PageMargin-#2\relax}%
+  \edef\SidebarSideTitleShift{\dimexpr-\PageMargin-#2/2\relax}%
   \fi
 }
 
@@ -339,7 +341,7 @@
     yshift={\dimexpr\zposy{#3}sp\relax}]current page.\SidebarSideAnchor);
     \draw (sideLineStart) -- (sideLineEnd);
     \node at ($(sideTitleStart)!0.5!(sideTitleEnd)$) {
-      \begin{minipage}{#4}
+      \begin{minipage}{\dimexpr#4-2\ContentGap\relax}
         #5
       \end{minipage}
     };
@@ -363,7 +365,7 @@
     yshift={\dimexpr\zposy{#2}sp\relax}]current page.\SidebarSideAnchor);
     \draw (sideLineTop) -- (sideLineEnd);
     \node at ($(sideTitleTop)!0.5!(sideTitleEnd)$) {
-      \begin{minipage}{#3}
+      \begin{minipage}{\dimexpr#3-2\ContentGap\relax}
         #4
       \end{minipage}
     };
@@ -594,11 +596,11 @@
 \newcommand{\DrawSidebarHeadFrom}[2]{%
   \begin{tikzpicture}[overlay, remember picture]
     \if L#1
-      \edef\SidebarLineWidth{\the\SidebarWidthSaved}%
-      \let\SidebarTitle\SideFirstTitleSaved
+    \edef\SidebarLineWidth{\the\SidebarWidthSaved}%
+    \let\SidebarTitle\SideFirstTitleSaved
     \else
-      \edef\SidebarLineWidth{\the\SidebarWidthSavedR}%
-      \let\SidebarTitle\SideFirstTitleSavedR
+    \edef\SidebarLineWidth{\the\SidebarWidthSavedR}%
+    \let\SidebarTitle\SideFirstTitleSavedR
     \fi
     \SetupSidebarSide{#1}{\SidebarLineWidth}%
     \coordinate (sideLineStart) at
@@ -615,7 +617,7 @@
     yshift=\PageMargin]current page.\SidebarSideAnchor);
     \draw (sideLineStart) -- (sideLineBottom);
     \node at ($(sideTitleStart)!0.5!(sideTitleBottom)$) {
-      \begin{minipage}{\SidebarLineWidth}
+      \begin{minipage}{\dimexpr\SidebarLineWidth-2\ContentGap\relax}
         \SidebarTitle
       \end{minipage}
     };
@@ -625,11 +627,11 @@
 \newcommand{\DrawSidebarVerticalLine}[1]{%
   \begin{tikzpicture}[overlay, remember picture]
     \if L#1
-      \edef\SidebarLineWidth{\the\SidebarWidthSaved}%
-      \let\SidebarTitle\SideMultiTitleSaved
+    \edef\SidebarLineWidth{\the\SidebarWidthSaved}%
+    \let\SidebarTitle\SideMultiTitleSaved
     \else
-      \edef\SidebarLineWidth{\the\SidebarWidthSavedR}%
-      \let\SidebarTitle\SideMultiTitleSavedR
+    \edef\SidebarLineWidth{\the\SidebarWidthSavedR}%
+    \let\SidebarTitle\SideMultiTitleSavedR
     \fi
     \SetupSidebarSide{#1}{\SidebarLineWidth}%
     \coordinate (sideLineBottom) at
@@ -646,7 +648,7 @@
     yshift=-\PageMargin]current page.\SidebarSideNAnchor);
     \draw (sideLineBottom) -- (sideLineTop);
     \node at ($(sideTitleBottom)!0.5!(sideTitleTop)$) {
-      \begin{minipage}{\SidebarLineWidth}
+      \begin{minipage}{\dimexpr\SidebarLineWidth-2\ContentGap\relax}
         \SidebarTitle
       \end{minipage}
     };
@@ -695,7 +697,7 @@
 
   样式修改后可能需要第三次编译边框线才能正确显示。
 
-  \vspace{4cm} % 一个4cm 的垂直间距
+  \vspace{6cm} % 一个4cm 的垂直间距
 
   \TableRow{l}{ \textbf{二、研究内容：} }
 
@@ -705,8 +707,7 @@
     }{1cm} % 1cm是侧边栏的宽度
     由于我们使用的是 overlay 画外框，这里的文本可
     以像普通 LaTeX 文档一样编写。
-
-    可以随意使用列表：
+    比如，可以随意使用列表：
     \begin{itemize}
       \item 这是一个列表项
       \item 这是另一个列表项
@@ -717,9 +718,32 @@
       e^{\pi i} + 1 = 0
     \end{equation}
 
-    下面这个 \texttt{lipsum} 命令会插入一大堆内容，用于在PDF中展示换页的效果。
-    \lipsum[1-2] % 插入一些假文
+    或者插入一个普通的表格：
 
+    \begin{table}[H] % 这个 H 标记控制表格不浮动
+      \caption{几个不同国家的人均人口}
+      \begin{center}
+        \begin{tabular}[c]{|l|r|}
+          \hline
+          国家 & 人均人口 \\
+          \hline
+          中国 & 1 \\
+          美国 & 1 \\
+          俄罗斯 & 1 \\
+          日本 & 1 \\
+          \hline
+        \end{tabular}
+      \end{center}
+    \end{table}
+
+    以及插入图片：
+
+    \begin{figure}[H]
+      \begin{center}
+        \includegraphics[width=0.5\textwidth]{example-image-a}
+      \end{center}
+      \caption{示例图片}
+    \end{figure}
   \end{SidebarTable}
 
   % 结尾签字栏
@@ -731,7 +755,7 @@
     \vspace{2.5cm} & \vspace{2.5cm}
   }
 
-  可以使用\texttt{\textbackslash{}TableSepLine}命令来画一条带间距的分割线：
+  可以使用\texttt{\textbackslash{}TableSepLine}命令来画一条分割线：
 
   \TableSepLine
 
@@ -740,9 +764,11 @@
 
 \texttt{TableFrame}环境外面的内容不带框。
 
-后面是更多的一些示例。
-
 \begin{TableFrame}
+  % 由于我的技术限制，在TableFrame 开头是文本时，
+  % 建议添加一个\vspace命令来控制垂直间距
+  \vspace{0.5em}
+  后面是更多的一些示例。
 
   % 技巧：通过调整 X 的系数 (如 >{\hsize=0.5\hsize}X ) 可以控制列宽比例
   \TableRow{X|>{\hsize=0.5\hsize}X}{
@@ -750,12 +776,6 @@
   }
   \TableRow{>{\hsize=0.5\hsize}X|X}{
     较窄列 & 较宽列
-  }
-  \TableRow{l|X|X}{
-    行1 & 内容A & 内容B
-  }
-  \TableRow{l|X}{
-    行2 & 内容C
   }
 
   \begin{SidebarTable}[
@@ -766,7 +786,11 @@
 
       栏
 
+      ︵
+
       续
+
+      ︶
     ]{
       \centering
       侧
@@ -777,12 +801,14 @@
     }{1cm}
     侧边栏跨页时可以使用可选参数指定第二页及其之后的页码的侧边栏的标题。
 
-    \lipsum[1]
+    下面这个 \texttt{lipsum} 命令会插入一大堆假文内容，用于在PDF中展
+    示换页的效果。
+    \lipsum[1] % 插入一些假文
 
-    \TableRow{X|X}{
+    \TableRow{>{\hsize=0.4\hsize}X|X}{
       此外，& 也可以
     }
-    \TableRow{X|X}{
+    \TableRow{>{\hsize=0.4\hsize}X|X}{
       \centering 在侧边栏中 \newline  % 在表格中使用 \newline 换行
       添加表格 &
     }
@@ -794,17 +820,13 @@
     使用分隔线。
   \end{SidebarTable}
 
-  \begin{SidebarTableR}[a]{
+  \begin{SidebarTableR}{
       \centering
       照片
 
       位置
     }{4cm}
     最后，还有侧边栏在右侧的版本\texttt{SidebarTableR} 。这也许可以用来放照片
-    \begin{SidebarTable}{a}{2cm}
-      hello
-    \end{SidebarTable}
   \end{SidebarTableR}
 \end{TableFrame}
-
 \end{document}
