@@ -28,13 +28,13 @@
 
 所有代码均包含在[`main.tex`](./main.tex)中。
 
-仅在XeLaTeX下编译测试通过。
+仅在XeLaTeX下编译测试通过。推荐 TeX Live 2022 或更新版本。
 
 ```bash
 xelatex main.tex
 ```
 
-**注意**：由于文档涉及到 `TikZ` 的绝对定位绘制，页面布局或内容发生更改时，可能需要**编译三次**，边框线才能显示在正确的位置。
+**注意**：由于文档涉及到 `TikZ` 的绝对定位绘制，页面布局或内容发生更改时，可能需要**编译三次**，边框线才能显示在正确的位置。建议使用 [latexmk](https://www.cantab.net/users/johncollins/latexmk/) 等工具。
 
 ## 命令说明
 

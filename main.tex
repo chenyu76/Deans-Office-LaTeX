@@ -47,7 +47,6 @@
   \else #4\fi
 }
 \makeatother
-\newcounter{SidebarTableLabelCounter}
 \newcounter{TableFrameLabelCounter}
 
 \newcommand{\RememberTablePosition}[1]{%
@@ -64,56 +63,53 @@
 }
 
 % 侧边栏
-% 宽度
+% 当前正文左/右侧已经被侧边栏占用的总宽度；嵌套时按层级累计。
 \newlength{\SidebarWidth}
 \setlength{\SidebarWidth}{0cm}
-\newcounter{SidebarEnvCounter}
-\def\currentSidebarState{0}% 当前页输出时使用的状态（0=关，1=开）
-\def\pendingSidebarState{0}% 用户设定的待生效状态
-\def\SidebarStartLabel{}
-\def\SideFirstTitle{}
-\def\SideFirstTitleSaved{}
-\def\SideMultiTitleSaved{}
-\newlength{\SidebarWidthSaved}
-\newif\ifSidebarHeadOnThisPage
-\newcommand{\EnableSidebar}{%
-  \global\def\pendingSidebarState{1}%
-  % 注意：不修改 \currentSidebarState
-}
-\newcommand{\DisableSidebar}{%
-  \global\def\pendingSidebarState{0}%
-  \global\def\currentSidebarState{0}% 强制当前页输出时不画
-}
-\newcommand{\ResetSidebar}{%
-  \global\def\pendingSidebarState{0}%
-  \global\def\currentSidebarState{0}%
-  \global\SidebarHeadOnThisPagefalse
-}
-
-% 右侧侧边栏
 \newlength{\SidebarWidthR}
 \setlength{\SidebarWidthR}{0cm}
-\newcounter{SidebarEnvCounterR}
-\def\currentSidebarStateR{0}
-\def\pendingSidebarStateR{0}
-\def\SidebarStartLabelR{}
-\def\SideFirstTitleR{}
-\def\SideFirstTitleSavedR{}
-\def\SideMultiTitleSavedR{}
-\newlength{\SidebarWidthSavedR}
-\newif\ifSidebarHeadOnThisPageR
-\newcommand{\EnableSidebarR}{%
-  \global\def\pendingSidebarStateR{1}%
-}
-\newcommand{\DisableSidebarR}{%
-  \global\def\pendingSidebarStateR{0}%
-  \global\def\currentSidebarStateR{0}%
-}
-\newcommand{\ResetSidebarR}{%
-  \global\def\pendingSidebarStateR{0}%
-  \global\def\currentSidebarStateR{0}%
-  \global\SidebarHeadOnThisPageRfalse
-}
+\newcounter{SidebarEnvCounter}
+\newlength{\SidebarThisWidth}
+\newlength{\SidebarThisOffset}
+
+\ExplSyntaxOn
+\seq_new:N \g_table_sidebar_pending_seq
+\seq_new:N \g_table_sidebar_current_seq
+\seq_new:N \g_table_sidebar_head_seq
+
+\cs_new_protected:Npn \table_sidebar_add_pending:n #1
+  {
+    \seq_if_in:NnF \g_table_sidebar_pending_seq {#1}
+      { \seq_gput_right:Nn \g_table_sidebar_pending_seq {#1} }
+  }
+\cs_new_protected:Npn \table_sidebar_remove_pending:n #1
+  { \seq_gremove_all:Nn \g_table_sidebar_pending_seq {#1} }
+\cs_new_protected:Npn \table_sidebar_add_head:n #1
+  {
+    \seq_if_in:NnF \g_table_sidebar_head_seq {#1}
+      { \seq_gput_right:Nn \g_table_sidebar_head_seq {#1} }
+  }
+\cs_new_protected:Npn \table_sidebar_shipout:
+  {
+    \seq_map_inline:Nn \g_table_sidebar_pending_seq
+      {
+        \seq_if_in:NnTF \g_table_sidebar_head_seq {##1}
+          { \AtBeginShipoutAddToBox{\DrawSidebarHeadFromId{##1}} }
+          {
+            \seq_if_in:NnTF \g_table_sidebar_current_seq {##1}
+              { \AtBeginShipoutAddToBox{\DrawSidebarVerticalLineFromId{##1}} }
+              { \AtBeginShipoutAddToBox{\DrawSidebarHeadFromId{##1}} }
+          }
+      }
+    \seq_gset_eq:NN \g_table_sidebar_current_seq \g_table_sidebar_pending_seq
+    \seq_gclear:N \g_table_sidebar_head_seq
+  }
+
+\NewDocumentCommand{\SidebarAddPending}{m}{\table_sidebar_add_pending:n {#1}}
+\NewDocumentCommand{\SidebarRemovePending}{m}{\table_sidebar_remove_pending:n {#1}}
+\NewDocumentCommand{\SidebarAddHeadThisPage}{m}{\table_sidebar_add_head:n {#1}}
+\NewDocumentCommand{\TableSidebarShipout}{}{\table_sidebar_shipout:}
+\ExplSyntaxOff
 
 % 页面外框
 \def\currentPageFrameState{0}% 当前页输出时使用的状态（0=关，1=开）
@@ -171,33 +167,8 @@
   \AtBeginShipoutAddToBox{\DrawPageFrameHeadFrom{\PageFrameStartLabel}}%
   \fi
   \fi
-  \ifnum\pendingSidebarState=1
-  \ifSidebarHeadOnThisPage
-  \AtBeginShipoutAddToBox{\DrawSidebarHeadFrom{L}{\SidebarStartLabel}}%
-  \else
-  \ifnum\currentSidebarState=1
-  \AtBeginShipoutAddToBox{\DrawSidebarVerticalLine{L}}%
-  \else
-  \AtBeginShipoutAddToBox{\DrawSidebarHeadFrom{L}{\SidebarStartLabel}}%
-  \fi
-  \fi
-  \fi
-  \ifnum\pendingSidebarStateR=1
-  \ifSidebarHeadOnThisPageR
-  \AtBeginShipoutAddToBox{\DrawSidebarHeadFrom{R}{\SidebarStartLabelR}}%
-  \else
-  \ifnum\currentSidebarStateR=1
-  \AtBeginShipoutAddToBox{\DrawSidebarVerticalLine{R}}%
-  \else
-  \AtBeginShipoutAddToBox{\DrawSidebarHeadFrom{R}{\SidebarStartLabelR}}%
-  \fi
-  \fi
-  \fi
-  \xdef\currentSidebarState{\pendingSidebarState}%
+  \TableSidebarShipout
   \xdef\currentPageFrameState{\pendingPageFrameState}%
-  \xdef\currentSidebarStateR{\pendingSidebarStateR}%
-  \global\SidebarHeadOnThisPagefalse
-  \global\SidebarHeadOnThisPageRfalse
 }
 
 % 自动间距配置
@@ -296,23 +267,23 @@
   \TableAutoSpacingMarkRule
 }
 
-\newcommand{\SetupSidebarSide}[2]{%
+\newcommand{\SetupSidebarSide}[3]{%
   \if L#1
   \edef\SidebarSideAnchor{south west}%
   \edef\SidebarSideNAnchor{north west}%
-  \edef\SidebarSideLineShift{\dimexpr\PageMargin+#2\relax}%
-  \edef\SidebarSideTitleShift{\dimexpr\PageMargin+#2/2\relax}%
+  \edef\SidebarSideLineShift{\the\dimexpr\PageMargin+#2+#3\relax}%
+  \edef\SidebarSideTitleShift{\the\dimexpr\PageMargin+#2+#3/2\relax}%
   \else
   \edef\SidebarSideAnchor{south east}%
   \edef\SidebarSideNAnchor{north east}%
-  \edef\SidebarSideLineShift{\dimexpr-\PageMargin-#2\relax}%
-  \edef\SidebarSideTitleShift{\dimexpr-\PageMargin-#2/2\relax}%
+  \edef\SidebarSideLineShift{\the\dimexpr-\PageMargin-#2-#3\relax}%
+  \edef\SidebarSideTitleShift{\the\dimexpr-\PageMargin-#2-#3/2\relax}%
   \fi
 }
 
-\NewDocumentCommand{\DrawSidebarSegment}{m m m m +m}{%
+\NewDocumentCommand{\DrawSidebarSegment}{m m m m m +m}{%
   \begin{tikzpicture}[overlay, remember picture]
-    \SetupSidebarSide{#1}{#4}%
+    \SetupSidebarSide{#1}{#4}{#5}%
     \coordinate (sideLineStart) at
     ([xshift=\SidebarSideLineShift,
     yshift={\dimexpr\zposy{#2}sp\relax}]current page.\SidebarSideAnchor);
@@ -327,16 +298,16 @@
     yshift={\dimexpr\zposy{#3}sp\relax}]current page.\SidebarSideAnchor);
     \draw (sideLineStart) -- (sideLineEnd);
     \node at ($(sideTitleStart)!0.5!(sideTitleEnd)$) {
-      \begin{minipage}{\dimexpr#4-2\ContentGap\relax}
-        #5
+      \begin{minipage}{\dimexpr#5-2\ContentGap\relax}
+        #6
       \end{minipage}
     };
   \end{tikzpicture}%
 }
 
-\NewDocumentCommand{\DrawSidebarTailTo}{m m m +m}{%
+\NewDocumentCommand{\DrawSidebarTailTo}{m m m m +m}{%
   \begin{tikzpicture}[overlay, remember picture]
-    \SetupSidebarSide{#1}{#3}%
+    \SetupSidebarSide{#1}{#3}{#4}%
     \coordinate (sideLineTop) at
     ([xshift=\SidebarSideLineShift,
     yshift=-\PageMargin]current page.\SidebarSideNAnchor);
@@ -351,6 +322,54 @@
     yshift={\dimexpr\zposy{#2}sp\relax}]current page.\SidebarSideAnchor);
     \draw (sideLineTop) -- (sideLineEnd);
     \node at ($(sideTitleTop)!0.5!(sideTitleEnd)$) {
+      \begin{minipage}{\dimexpr#4-2\ContentGap\relax}
+        #5
+      \end{minipage}
+    };
+  \end{tikzpicture}%
+}
+
+\NewDocumentCommand{\DrawSidebarHeadFrom}{m m m m +m}{%
+  \begin{tikzpicture}[overlay, remember picture]
+    \SetupSidebarSide{#1}{#3}{#4}%
+    \coordinate (sideLineStart) at
+    ([xshift=\SidebarSideLineShift,
+    yshift={\dimexpr\zposy{#2}sp\relax}]current page.\SidebarSideAnchor);
+    \coordinate (sideLineBottom) at
+    ([xshift=\SidebarSideLineShift,
+    yshift=\PageMargin]current page.\SidebarSideAnchor);
+    \coordinate (sideTitleStart) at
+    ([xshift=\SidebarSideTitleShift,
+    yshift={\dimexpr\zposy{#2}sp\relax}]current page.\SidebarSideAnchor);
+    \coordinate (sideTitleBottom) at
+    ([xshift=\SidebarSideTitleShift,
+    yshift=\PageMargin]current page.\SidebarSideAnchor);
+    \draw (sideLineStart) -- (sideLineBottom);
+    \node at ($(sideTitleStart)!0.5!(sideTitleBottom)$) {
+      \begin{minipage}{\dimexpr#4-2\ContentGap\relax}
+        #5
+      \end{minipage}
+    };
+  \end{tikzpicture}%
+}
+
+\NewDocumentCommand{\DrawSidebarVerticalLine}{m m m +m}{%
+  \begin{tikzpicture}[overlay, remember picture]
+    \SetupSidebarSide{#1}{#2}{#3}%
+    \coordinate (sideLineBottom) at
+    ([xshift=\SidebarSideLineShift,
+    yshift=\PageMargin]current page.\SidebarSideAnchor);
+    \coordinate (sideLineTop) at
+    ([xshift=\SidebarSideLineShift,
+    yshift=-\PageMargin]current page.\SidebarSideNAnchor);
+    \coordinate (sideTitleBottom) at
+    ([xshift=\SidebarSideTitleShift,
+    yshift=\PageMargin]current page.\SidebarSideAnchor);
+    \coordinate (sideTitleTop) at
+    ([xshift=\SidebarSideTitleShift,
+    yshift=-\PageMargin]current page.\SidebarSideNAnchor);
+    \draw (sideLineBottom) -- (sideLineTop);
+    \node at ($(sideTitleBottom)!0.5!(sideTitleTop)$) {
       \begin{minipage}{\dimexpr#3-2\ContentGap\relax}
         #4
       \end{minipage}
@@ -358,26 +377,26 @@
   \end{tikzpicture}%
 }
 
-\NewDocumentCommand{\ScheduleSidebarSegment}{m m m m +m}{%
+\NewDocumentCommand{\ScheduleSidebarSegment}{m m m m m +m}{%
   \begingroup
   \edef\ScheduleSidebarCode{%
     \endgroup
     \noexpand\AtBeginShipoutNext{%
       \noexpand\AtBeginShipoutAddToBox{%
-        \noexpand\DrawSidebarSegment{#1}{#2}{#3}{#4}{\unexpanded{#5}}%
+        \noexpand\DrawSidebarSegment{#1}{#2}{#3}{#4}{#5}{\unexpanded{#6}}%
       }%
     }%
   }%
   \ScheduleSidebarCode
 }
 
-\NewDocumentCommand{\ScheduleSidebarTail}{m m m +m}{%
+\NewDocumentCommand{\ScheduleSidebarTail}{m m m m +m}{%
   \begingroup
   \edef\ScheduleSidebarCode{%
     \endgroup
     \noexpand\AtBeginShipoutNext{%
       \noexpand\AtBeginShipoutAddToBox{%
-        \noexpand\DrawSidebarTailTo{#1}{#2}{#3}{\unexpanded{#4}}%
+        \noexpand\DrawSidebarTailTo{#1}{#2}{#3}{#4}{\unexpanded{#5}}%
       }%
     }%
   }%
@@ -401,12 +420,12 @@
 % 注意：列格式不需要写两边的竖线，系统会自动处理
 \NewDocumentCommand{\TableRow}{O{\RowHeight} m m}{%
   \SepLine % 一条分割线
-  % 使用 tabularx 占满行宽
+  % 使用 tabularx 占满当前行宽
   % @{} 消除左右默认间距，使表格紧贴版心边缘
   \begingroup
   \TableAutoSpacingSuppressParatrue
   \noindent
-  \begin{tabularx}{\textwidth}{@{} #2 @{}}
+  \begin{tabularx}{\linewidth}{@{} #2 @{}}
     % 在每个单元格内插入一个不可见的rule撑开高度
     \rule{0pt}{#1} #3
   \end{tabularx}%
@@ -467,179 +486,145 @@
   \addvspace{\TableBlockSkip}%
 }
 
-\NewDocumentEnvironment{SidebarTable}{+O{} +m m}{%
-  \stepcounter{SidebarTableLabelCounter}
+\def\SidebarLeftSide{L}
+\newcommand{\StoreSidebarInstance}[6]{%
+  \expandafter\xdef\csname SidebarSide@#1\endcsname{#2}%
+  \expandafter\xdef\csname SidebarOffset@#1\endcsname{#3}%
+  \expandafter\xdef\csname SidebarWidthValue@#1\endcsname{#4}%
+  \expandafter\xdef\csname SidebarStartLabel@#1\endcsname{sidebarStart#1}%
+  \expandafter\xdef\csname SidebarEndLabel@#1\endcsname{sidebarEnd#1}%
+  \expandafter\gdef\csname SidebarFirstTitle@#1\endcsname{#5}%
+  \expandafter\gdef\csname SidebarMultiTitle@#1\endcsname{#6}%
+}
+
+\newcommand{\DrawSidebarSegmentFromId}[1]{%
+  \DrawSidebarSegment
+  {\csname SidebarSide@#1\endcsname}
+  {\csname SidebarStartLabel@#1\endcsname}
+  {\csname SidebarEndLabel@#1\endcsname}
+  {\csname SidebarOffset@#1\endcsname}
+  {\csname SidebarWidthValue@#1\endcsname}
+  {\csname SidebarFirstTitle@#1\endcsname}%
+}
+\newcommand{\DrawSidebarHeadFromId}[1]{%
+  \DrawSidebarHeadFrom
+  {\csname SidebarSide@#1\endcsname}
+  {\csname SidebarStartLabel@#1\endcsname}
+  {\csname SidebarOffset@#1\endcsname}
+  {\csname SidebarWidthValue@#1\endcsname}
+  {\csname SidebarFirstTitle@#1\endcsname}%
+}
+\newcommand{\DrawSidebarTailFromId}[1]{%
+  \DrawSidebarTailTo
+  {\csname SidebarSide@#1\endcsname}
+  {\csname SidebarEndLabel@#1\endcsname}
+  {\csname SidebarOffset@#1\endcsname}
+  {\csname SidebarWidthValue@#1\endcsname}
+  {\csname SidebarMultiTitle@#1\endcsname}%
+}
+\newcommand{\DrawSidebarVerticalLineFromId}[1]{%
+  \DrawSidebarVerticalLine
+  {\csname SidebarSide@#1\endcsname}
+  {\csname SidebarOffset@#1\endcsname}
+  {\csname SidebarWidthValue@#1\endcsname}
+  {\csname SidebarMultiTitle@#1\endcsname}%
+}
+
+\newcommand{\ScheduleSidebarSegmentFromId}[1]{%
+  \begingroup
+  \edef\ScheduleSidebarCode{%
+    \endgroup
+    \noexpand\AtBeginShipoutNext{%
+      \noexpand\AtBeginShipoutAddToBox{%
+        \noexpand\DrawSidebarSegmentFromId{#1}%
+      }%
+    }%
+  }%
+  \ScheduleSidebarCode
+}
+\newcommand{\ScheduleSidebarTailFromId}[1]{%
+  \begingroup
+  \edef\ScheduleSidebarCode{%
+    \endgroup
+    \noexpand\AtBeginShipoutNext{%
+      \noexpand\AtBeginShipoutAddToBox{%
+        \noexpand\DrawSidebarTailFromId{#1}%
+      }%
+    }%
+  }%
+  \ScheduleSidebarCode
+}
+
+\NewDocumentCommand{\SidebarTableBegin}{m +m +m m}{%
   \stepcounter{SidebarEnvCounter}%
-  \ResetSidebar
-  \gdef\SideFirstTitle{#2}%
-  \gdef\SideMultiTitle{#1}%
-  \SepLine{}
+  \edef\SidebarThisId{\arabic{SidebarEnvCounter}}%
+  \edef\SidebarThisSide{#1}%
+  \setlength{\SidebarThisWidth}{#4}%
+  \if L#1
+    \setlength{\SidebarThisOffset}{\SidebarWidth}%
+  \else
+    \setlength{\SidebarThisOffset}{\SidebarWidthR}%
+  \fi
+  \StoreSidebarInstance{\SidebarThisId}{#1}{\the\SidebarThisOffset}
+  {\the\SidebarThisWidth}{#3}{#2}%
+  \SepLine{}%
   \TableAutoSpacingSuppressParatrue
   \par
   \nointerlineskip
   \noindent
-  \setlength{\SidebarWidth}{#3}
-  \RememberTablePosition{sidebarStart\theSidebarEnvCounter}%
-  \ifsamePage{SidebarTableStart\arabic{SidebarTableLabelCounter}}{SidebarTableEnd\arabic{SidebarTableLabelCounter}}{%
+  \RememberTablePosition{sidebarStart\SidebarThisId}%
+  \ifsamePage{SidebarTableStart\SidebarThisId}{SidebarTableEnd\SidebarThisId}{%
   }{%
-    \xdef\SidebarStartLabel{sidebarStart\theSidebarEnvCounter}%
-    \global\let\SideFirstTitleSaved\SideFirstTitle
-    \global\let\SideMultiTitleSaved\SideMultiTitle
-    \global\SidebarWidthSaved=\SidebarWidth\relax
-    \global\SidebarHeadOnThisPagetrue
-    \EnableSidebar%
+    \SidebarAddPending{\SidebarThisId}%
+    \SidebarAddHeadThisPage{\SidebarThisId}%
   }%
   \TableAutoSpacingSuppressParafalse
-  \begin{adjustwidth}{#3}{0cm}
-    \pageLabel{SidebarTableStart\arabic{SidebarTableLabelCounter}}
-  }{%
+  \if L#1
+    \addtolength{\SidebarWidth}{\SidebarThisWidth}%
+    \begin{adjustwidth}{#4}{0cm}
+  \else
+    \addtolength{\SidebarWidthR}{\SidebarThisWidth}%
+    \begin{adjustwidth}{0cm}{#4}
+  \fi
+    \pageLabel{SidebarTableStart\SidebarThisId}%
+}
+
+\NewDocumentCommand{\SidebarTableEnd}{}{%
     \TableAutoSpacingBeforeRule
-    \pageLabel{SidebarTableEnd\arabic{SidebarTableLabelCounter}}
-    \RememberTablePosition{sidebarEnd\theSidebarEnvCounter}%
+    \pageLabel{SidebarTableEnd\SidebarThisId}%
+    \RememberTablePosition{sidebarEnd\SidebarThisId}%
   \end{adjustwidth}%
   \par
   \nointerlineskip
-  \ifsamePage{SidebarTableStart\arabic{SidebarTableLabelCounter}}{SidebarTableEnd\arabic{SidebarTableLabelCounter}}{%
-    \DisableSidebar%
-    \ScheduleSidebarSegment{L}
-    {sidebarStart\theSidebarEnvCounter}
-    {sidebarEnd\theSidebarEnvCounter}
-    {\the\SidebarWidth}
-    {#2}%
+  \ifsamePage{SidebarTableStart\SidebarThisId}{SidebarTableEnd\SidebarThisId}{%
+    \ScheduleSidebarSegmentFromId{\SidebarThisId}%
     \TableAutoSpacingMarkRule
   }{%
-    \DisableSidebar%
-    \ScheduleSidebarTail{L}
-    {sidebarEnd\theSidebarEnvCounter}
-    {\the\SidebarWidth}
-    {#1}%
+    \SidebarRemovePending{\SidebarThisId}%
+    \ScheduleSidebarTailFromId{\SidebarThisId}%
     \TableAutoSpacingMarkRule
   }%
-  \DisableSidebar
-  \setlength{\SidebarWidth}{0cm}
-  \FullRawSepLine
+  \ifx\SidebarThisSide\SidebarLeftSide
+    \addtolength{\SidebarWidth}{-\SidebarThisWidth}%
+  \else
+    \addtolength{\SidebarWidthR}{-\SidebarThisWidth}%
+  \fi
+  \RawSepLine
   \TableAutoSpacingMarkRule
   \global\TableSkipNextSepLinetrue
   \ignorespacesafterend
 }
 
-\newcounter{SidebarTableLabelCounterR}
+\NewDocumentEnvironment{SidebarTable}{+O{} +m m}{%
+  \SidebarTableBegin{L}{#1}{#2}{#3}%
+}{%
+  \SidebarTableEnd
+}
+
 \NewDocumentEnvironment{SidebarTableR}{+O{} +m m}{%
-  \stepcounter{SidebarTableLabelCounterR}
-  \stepcounter{SidebarEnvCounterR}%
-  \ResetSidebarR
-  \gdef\SideFirstTitleR{#2}%
-  \gdef\SideMultiTitleR{#1}%
-  \SepLine{}
-  \TableAutoSpacingSuppressParatrue
-  \par
-  \nointerlineskip
-  \noindent
-  \setlength{\SidebarWidthR}{#3}
-  \RememberTablePosition{sidebarRStart\theSidebarEnvCounterR}%
-  \ifsamePage{SidebarTableRStart\arabic{SidebarTableLabelCounterR}}{SidebarTableREnd\arabic{SidebarTableLabelCounterR}}{%
-  }{%
-    \xdef\SidebarStartLabelR{sidebarRStart\theSidebarEnvCounterR}%
-    \global\let\SideFirstTitleSavedR\SideFirstTitleR
-    \global\let\SideMultiTitleSavedR\SideMultiTitleR
-    \global\SidebarWidthSavedR=\SidebarWidthR\relax
-    \global\SidebarHeadOnThisPageRtrue
-    \EnableSidebarR%
-  }%
-  \TableAutoSpacingSuppressParafalse
-  \begin{adjustwidth}{0cm}{#3}
-    \pageLabel{SidebarTableRStart\arabic{SidebarTableLabelCounterR}}
-  }{%
-    \TableAutoSpacingBeforeRule
-    \pageLabel{SidebarTableREnd\arabic{SidebarTableLabelCounterR}}
-    \RememberTablePosition{sidebarREnd\theSidebarEnvCounterR}%
-  \end{adjustwidth}%
-  \par
-  \nointerlineskip
-  \ifsamePage{SidebarTableRStart\arabic{SidebarTableLabelCounterR}}{SidebarTableREnd\arabic{SidebarTableLabelCounterR}}{%
-    \DisableSidebarR%
-    \ScheduleSidebarSegment{R}
-    {sidebarRStart\theSidebarEnvCounterR}
-    {sidebarREnd\theSidebarEnvCounterR}
-    {\the\SidebarWidthR}
-    {#2}%
-    \TableAutoSpacingMarkRule
-  }{%
-    \DisableSidebarR%
-    \ScheduleSidebarTail{R}
-    {sidebarREnd\theSidebarEnvCounterR}
-    {\the\SidebarWidthR}
-    {#1}%
-    \TableAutoSpacingMarkRule
-  }%
-  \DisableSidebarR
-  \setlength{\SidebarWidthR}{0cm}
-  \FullRawSepLine
-  \TableAutoSpacingMarkRule
-  \global\TableSkipNextSepLinetrue
-  \ignorespacesafterend
-}
-
-\newcommand{\DrawSidebarHeadFrom}[2]{%
-  \begin{tikzpicture}[overlay, remember picture]
-    \if L#1
-    \edef\SidebarLineWidth{\the\SidebarWidthSaved}%
-    \let\SidebarTitle\SideFirstTitleSaved
-    \else
-    \edef\SidebarLineWidth{\the\SidebarWidthSavedR}%
-    \let\SidebarTitle\SideFirstTitleSavedR
-    \fi
-    \SetupSidebarSide{#1}{\SidebarLineWidth}%
-    \coordinate (sideLineStart) at
-    ([xshift=\SidebarSideLineShift,
-    yshift={\dimexpr\zposy{#2}sp\relax}]current page.\SidebarSideAnchor);
-    \coordinate (sideLineBottom) at
-    ([xshift=\SidebarSideLineShift,
-    yshift=\PageMargin]current page.\SidebarSideAnchor);
-    \coordinate (sideTitleStart) at
-    ([xshift=\SidebarSideTitleShift,
-    yshift={\dimexpr\zposy{#2}sp\relax}]current page.\SidebarSideAnchor);
-    \coordinate (sideTitleBottom) at
-    ([xshift=\SidebarSideTitleShift,
-    yshift=\PageMargin]current page.\SidebarSideAnchor);
-    \draw (sideLineStart) -- (sideLineBottom);
-    \node at ($(sideTitleStart)!0.5!(sideTitleBottom)$) {
-      \begin{minipage}{\dimexpr\SidebarLineWidth-2\ContentGap\relax}
-        \SidebarTitle
-      \end{minipage}
-    };
-  \end{tikzpicture}%
-}
-
-\newcommand{\DrawSidebarVerticalLine}[1]{%
-  \begin{tikzpicture}[overlay, remember picture]
-    \if L#1
-    \edef\SidebarLineWidth{\the\SidebarWidthSaved}%
-    \let\SidebarTitle\SideMultiTitleSaved
-    \else
-    \edef\SidebarLineWidth{\the\SidebarWidthSavedR}%
-    \let\SidebarTitle\SideMultiTitleSavedR
-    \fi
-    \SetupSidebarSide{#1}{\SidebarLineWidth}%
-    \coordinate (sideLineBottom) at
-    ([xshift=\SidebarSideLineShift,
-    yshift=\PageMargin]current page.\SidebarSideAnchor);
-    \coordinate (sideLineTop) at
-    ([xshift=\SidebarSideLineShift,
-    yshift=-\PageMargin]current page.\SidebarSideNAnchor);
-    \coordinate (sideTitleBottom) at
-    ([xshift=\SidebarSideTitleShift,
-    yshift=\PageMargin]current page.\SidebarSideAnchor);
-    \coordinate (sideTitleTop) at
-    ([xshift=\SidebarSideTitleShift,
-    yshift=-\PageMargin]current page.\SidebarSideNAnchor);
-    \draw (sideLineBottom) -- (sideLineTop);
-    \node at ($(sideTitleBottom)!0.5!(sideTitleTop)$) {
-      \begin{minipage}{\dimexpr\SidebarLineWidth-2\ContentGap\relax}
-        \SidebarTitle
-      \end{minipage}
-    };
-  \end{tikzpicture}%
+  \SidebarTableBegin{R}{#1}{#2}{#3}%
+}{%
+  \SidebarTableEnd
 }
 
 %========================%
