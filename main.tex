@@ -437,6 +437,7 @@
   \nointerlineskip
   \TableAutoSpacingActivetrue
   \TableAutoSpacingReset
+  \TableAutoSpacingMarkRule
   \pageLabel{TableFrameStart\arabic{TableFrameLabelCounter}}
 }{%
   \TableAutoSpacingBeforeRule
@@ -751,9 +752,6 @@
 \texttt{TableFrame}环境外面的内容不带框。
 
 \begin{TableFrame}
-  % 由于我的技术限制，在TableFrame 开头是文本时，
-  % 建议添加一个\vspace命令来控制垂直间距
-  \vspace{0.5em}
   后面是更多的一些示例。
 
   % 技巧：通过调整 X 的系数 (如 >{\hsize=0.5\hsize}X ) 可以控制列宽比例
