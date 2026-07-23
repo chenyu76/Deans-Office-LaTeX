@@ -38,11 +38,11 @@ xelatex main.tex
 
 **注意**：由于文档涉及到 `TikZ` 的绝对定位绘制，页面布局或内容发生更改时，可能需要**编译三次**，边框线才能显示在正确的位置。
 
-## 核心命令说明
+## 命令说明
 
 ### 页面外框 (`TableFrame`)
 
-给正文内容每页都加上框。
+给正文内容在每页都加上框。
 
 ```latex
 \begin{TableFrame}
@@ -54,14 +54,13 @@ xelatex main.tex
 \end{TableFrame}
 ```
 
-### 生成表格行 (`\TableRow`)
+### 表格行 (`\TableRow`)
 
 类似 `tabularx` 的语法，但会自动画好上边缘和下边缘的线并撑满版心：
 
 ```latex
-% 语法: \TableRow{列格式}{内容...}
+% 语法: \TableRow[可选高度]{列格式}{内容...}
 % X = 自动宽度, c = 居中, | = 竖线
-
 \TableRow{ c | X | c | X }{
     \textbf{姓名} & 张三 & \textbf{学号} & 2023001
 }
