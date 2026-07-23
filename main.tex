@@ -56,14 +56,14 @@
 
 \newcommand{\RememberTablePosition}[1]{%
   \ifvmode
-    \begingroup
-    \setbox0=\hbox{\zsavepos{#1}}%
-    \nointerlineskip
-    \box0
-    \nointerlineskip
-    \endgroup
+  \begingroup
+  \setbox0=\hbox{\zsavepos{#1}}%
+  \nointerlineskip
+  \box0
+  \nointerlineskip
+  \endgroup
   \else
-    \zsavepos{#1}%
+  \zsavepos{#1}%
   \fi
 }
 
@@ -170,39 +170,39 @@
 
 \AtBeginShipout{%
   \ifnum\pendingPageFrameState=1
-    \ifnum\currentPageFrameState=1
-      \AtBeginShipoutAddToBox{\DrawFullPageFrame}%
-    \else
-      \AtBeginShipoutAddToBox{\DrawPageFrameHeadFrom{\PageFrameStartLabel}}%
-    \fi
+  \ifnum\currentPageFrameState=1
+  \AtBeginShipoutAddToBox{\DrawFullPageFrame}%
   \else
-    \AtBeginShipoutAddToBox{\DrawEmptyOverlayPicture}%
+  \AtBeginShipoutAddToBox{\DrawPageFrameHeadFrom{\PageFrameStartLabel}}%
+  \fi
+  \else
+  \AtBeginShipoutAddToBox{\DrawEmptyOverlayPicture}%
   \fi
   \ifnum\pendingSidebarState=1
-    \ifSidebarHeadOnThisPage
-      \AtBeginShipoutAddToBox{\DrawSidebarHeadFrom{\SidebarStartLabel}}%
-    \else
-      \ifnum\currentSidebarState=1
-        \AtBeginShipoutAddToBox{\DrawSidebarVerticalLine}%
-      \else
-        \AtBeginShipoutAddToBox{\DrawSidebarHeadFrom{\SidebarStartLabel}}%
-      \fi
-    \fi
+  \ifSidebarHeadOnThisPage
+  \AtBeginShipoutAddToBox{\DrawSidebarHeadFrom{\SidebarStartLabel}}%
   \else
-    \AtBeginShipoutAddToBox{\DrawEmptyOverlayPicture}%
+  \ifnum\currentSidebarState=1
+  \AtBeginShipoutAddToBox{\DrawSidebarVerticalLine}%
+  \else
+  \AtBeginShipoutAddToBox{\DrawSidebarHeadFrom{\SidebarStartLabel}}%
+  \fi
+  \fi
+  \else
+  \AtBeginShipoutAddToBox{\DrawEmptyOverlayPicture}%
   \fi
   \ifnum\pendingSidebarStateR=1
-    \ifSidebarHeadOnThisPageR
-      \AtBeginShipoutAddToBox{\DrawSidebarHeadFromR{\SidebarStartLabelR}}%
-    \else
-      \ifnum\currentSidebarStateR=1
-        \AtBeginShipoutAddToBox{\DrawSidebarVerticalLineR}%
-      \else
-        \AtBeginShipoutAddToBox{\DrawSidebarHeadFromR{\SidebarStartLabelR}}%
-      \fi
-    \fi
+  \ifSidebarHeadOnThisPageR
+  \AtBeginShipoutAddToBox{\DrawSidebarHeadFromR{\SidebarStartLabelR}}%
   \else
-    \AtBeginShipoutAddToBox{\DrawEmptyOverlayPicture}%
+  \ifnum\currentSidebarStateR=1
+  \AtBeginShipoutAddToBox{\DrawSidebarVerticalLineR}%
+  \else
+  \AtBeginShipoutAddToBox{\DrawSidebarHeadFromR{\SidebarStartLabelR}}%
+  \fi
+  \fi
+  \else
+  \AtBeginShipoutAddToBox{\DrawEmptyOverlayPicture}%
   \fi
   \xdef\currentSidebarState{\pendingSidebarState}%
   \xdef\currentPageFrameState{\pendingPageFrameState}%
@@ -302,10 +302,10 @@
 % 命令：绘制横向分割线（状态感知）
 \newcommand{\SepLine}{%
   \ifTableSkipNextSepLine
-    \global\TableSkipNextSepLinefalse
+  \global\TableSkipNextSepLinefalse
   \else
-    \TableAutoSpacingBeforeRule
-    \RawSepLine
+  \TableAutoSpacingBeforeRule
+  \RawSepLine
   \fi
   \TableAutoSpacingMarkRule
 }
@@ -314,16 +314,16 @@
   \begin{tikzpicture}[overlay, remember picture]
     \coordinate (sideLineStart) at
     ([xshift={\dimexpr\PageMargin+#3\relax},
-      yshift={\dimexpr\zposy{#1}sp\relax}]current page.south west);
+    yshift={\dimexpr\zposy{#1}sp\relax}]current page.south west);
     \coordinate (sideLineEnd) at
     ([xshift={\dimexpr\PageMargin+#3\relax},
-      yshift={\dimexpr\zposy{#2}sp\relax}]current page.south west);
+    yshift={\dimexpr\zposy{#2}sp\relax}]current page.south west);
     \coordinate (sideTitleStart) at
     ([xshift={\dimexpr\PageMargin+#3/2\relax},
-      yshift={\dimexpr\zposy{#1}sp\relax}]current page.south west);
+    yshift={\dimexpr\zposy{#1}sp\relax}]current page.south west);
     \coordinate (sideTitleEnd) at
     ([xshift={\dimexpr\PageMargin+#3/2\relax},
-      yshift={\dimexpr\zposy{#2}sp\relax}]current page.south west);
+    yshift={\dimexpr\zposy{#2}sp\relax}]current page.south west);
     \draw (sideLineStart) -- (sideLineEnd);
     \node at ($(sideTitleStart)!0.5!(sideTitleEnd)$) {
       \begin{minipage}{#3}
@@ -340,13 +340,13 @@
     yshift=-\PageMargin]current page.north west);
     \coordinate (sideLineEnd) at
     ([xshift={\dimexpr\PageMargin+#2\relax},
-      yshift={\dimexpr\zposy{#1}sp\relax}]current page.south west);
+    yshift={\dimexpr\zposy{#1}sp\relax}]current page.south west);
     \coordinate (sideTitleTop) at
     ([xshift={\dimexpr\PageMargin+#2/2\relax},
     yshift=-\PageMargin]current page.north west);
     \coordinate (sideTitleEnd) at
     ([xshift={\dimexpr\PageMargin+#2/2\relax},
-      yshift={\dimexpr\zposy{#1}sp\relax}]current page.south west);
+    yshift={\dimexpr\zposy{#1}sp\relax}]current page.south west);
     \draw (sideLineTop) -- (sideLineEnd);
     \node at ($(sideTitleTop)!0.5!(sideTitleEnd)$) {
       \begin{minipage}{#2}
@@ -360,16 +360,16 @@
   \begin{tikzpicture}[overlay, remember picture]
     \coordinate (sideRLineStart) at
     ([xshift={\dimexpr-\PageMargin-#3\relax},
-      yshift={\dimexpr\zposy{#1}sp\relax}]current page.south east);
+    yshift={\dimexpr\zposy{#1}sp\relax}]current page.south east);
     \coordinate (sideRLineEnd) at
     ([xshift={\dimexpr-\PageMargin-#3\relax},
-      yshift={\dimexpr\zposy{#2}sp\relax}]current page.south east);
+    yshift={\dimexpr\zposy{#2}sp\relax}]current page.south east);
     \coordinate (sideRTitleStart) at
     ([xshift={\dimexpr-\PageMargin-#3/2\relax},
-      yshift={\dimexpr\zposy{#1}sp\relax}]current page.south east);
+    yshift={\dimexpr\zposy{#1}sp\relax}]current page.south east);
     \coordinate (sideRTitleEnd) at
     ([xshift={\dimexpr-\PageMargin-#3/2\relax},
-      yshift={\dimexpr\zposy{#2}sp\relax}]current page.south east);
+    yshift={\dimexpr\zposy{#2}sp\relax}]current page.south east);
     \draw (sideRLineStart) -- (sideRLineEnd);
     \node at ($(sideRTitleStart)!0.5!(sideRTitleEnd)$) {
       \begin{minipage}{#3}
@@ -386,13 +386,13 @@
     yshift=-\PageMargin]current page.north east);
     \coordinate (sideRLineEnd) at
     ([xshift={\dimexpr-\PageMargin-#2\relax},
-      yshift={\dimexpr\zposy{#1}sp\relax}]current page.south east);
+    yshift={\dimexpr\zposy{#1}sp\relax}]current page.south east);
     \coordinate (sideRTitleTop) at
     ([xshift={\dimexpr-\PageMargin-#2/2\relax},
     yshift=-\PageMargin]current page.north east);
     \coordinate (sideRTitleEnd) at
     ([xshift={\dimexpr-\PageMargin-#2/2\relax},
-      yshift={\dimexpr\zposy{#1}sp\relax}]current page.south east);
+    yshift={\dimexpr\zposy{#1}sp\relax}]current page.south east);
     \draw (sideRLineTop) -- (sideRLineEnd);
     \node at ($(sideRTitleTop)!0.5!(sideRTitleEnd)$) {
       \begin{minipage}{#2}
@@ -572,23 +572,23 @@
   \ifsamePage{SidebarTableStart\arabic{SidebarTableLabelCounter}}{SidebarTableEnd\arabic{SidebarTableLabelCounter}}{%
     \DisableSidebar%
     \ScheduleSidebarSegment
-      {sidebarStart\theSidebarEnvCounter}
-      {sidebarEnd\theSidebarEnvCounter}
-      {\the\SidebarWidth}
-      {#2}%
+    {sidebarStart\theSidebarEnvCounter}
+    {sidebarEnd\theSidebarEnvCounter}
+    {\the\SidebarWidth}
+    {#2}%
     \TableAutoSpacingMarkRule
   }{%
     \DisableSidebar%
     \ifx\SideOptionalTitle\empty
-      \ScheduleSidebarTail
-        {sidebarEnd\theSidebarEnvCounter}
-        {\the\SidebarWidth}
-        {#2}%
+    \ScheduleSidebarTail
+    {sidebarEnd\theSidebarEnvCounter}
+    {\the\SidebarWidth}
+    {#2}%
     \else
-      \ScheduleSidebarTail
-        {sidebarEnd\theSidebarEnvCounter}
-        {\the\SidebarWidth}
-        {#1}%
+    \ScheduleSidebarTail
+    {sidebarEnd\theSidebarEnvCounter}
+    {\the\SidebarWidth}
+    {#1}%
     \fi
     \TableAutoSpacingMarkRule
   }%
@@ -638,23 +638,23 @@
   \ifsamePage{SidebarTableRStart\arabic{SidebarTableLabelCounterR}}{SidebarTableREnd\arabic{SidebarTableLabelCounterR}}{%
     \DisableSidebarR%
     \ScheduleSidebarSegmentR
-      {sidebarRStart\theSidebarEnvCounterR}
-      {sidebarREnd\theSidebarEnvCounterR}
-      {\the\SidebarWidthR}
-      {#2}%
+    {sidebarRStart\theSidebarEnvCounterR}
+    {sidebarREnd\theSidebarEnvCounterR}
+    {\the\SidebarWidthR}
+    {#2}%
     \TableAutoSpacingMarkRule
   }{%
     \DisableSidebarR%
     \ifx\SideOptionalTitleR\empty
-      \ScheduleSidebarTailR
-        {sidebarREnd\theSidebarEnvCounterR}
-        {\the\SidebarWidthR}
-        {#2}%
+    \ScheduleSidebarTailR
+    {sidebarREnd\theSidebarEnvCounterR}
+    {\the\SidebarWidthR}
+    {#2}%
     \else
-      \ScheduleSidebarTailR
-        {sidebarREnd\theSidebarEnvCounterR}
-        {\the\SidebarWidthR}
-        {#1}%
+    \ScheduleSidebarTailR
+    {sidebarREnd\theSidebarEnvCounterR}
+    {\the\SidebarWidthR}
+    {#1}%
     \fi
     \TableAutoSpacingMarkRule
   }%
@@ -671,13 +671,13 @@
   \begin{tikzpicture}[overlay, remember picture]
     \coordinate (sideLineStart) at
     ([xshift={\dimexpr\PageMargin+\SidebarWidth\relax},
-      yshift={\dimexpr\zposy{#1}sp\relax}]current page.south west);
+    yshift={\dimexpr\zposy{#1}sp\relax}]current page.south west);
     \coordinate (sideLineBottom) at
     ([xshift={\dimexpr\PageMargin+\SidebarWidth\relax},
     yshift=\PageMargin]current page.south west);
     \coordinate (sideTitleStart) at
     ([xshift={\dimexpr\PageMargin+\SidebarWidth/2\relax},
-      yshift={\dimexpr\zposy{#1}sp\relax}]current page.south west);
+    yshift={\dimexpr\zposy{#1}sp\relax}]current page.south west);
     \coordinate (sideTitleBottom) at
     ([xshift={\dimexpr\PageMargin+\SidebarWidth/2\relax},
     yshift=\PageMargin]current page.south west);
@@ -694,13 +694,13 @@
   \begin{tikzpicture}[overlay, remember picture]
     \coordinate (sideRLineStart) at
     ([xshift={\dimexpr-\PageMargin-\SidebarWidthR\relax},
-      yshift={\dimexpr\zposy{#1}sp\relax}]current page.south east);
+    yshift={\dimexpr\zposy{#1}sp\relax}]current page.south east);
     \coordinate (sideRLineBottom) at
     ([xshift={\dimexpr-\PageMargin-\SidebarWidthR\relax},
     yshift=\PageMargin]current page.south east);
     \coordinate (sideRTitleStart) at
     ([xshift={\dimexpr-\PageMargin-\SidebarWidthR/2\relax},
-      yshift={\dimexpr\zposy{#1}sp\relax}]current page.south east);
+    yshift={\dimexpr\zposy{#1}sp\relax}]current page.south east);
     \coordinate (sideRTitleBottom) at
     ([xshift={\dimexpr-\PageMargin-\SidebarWidthR/2\relax},
     yshift=\PageMargin]current page.south east);
@@ -811,8 +811,7 @@
       \centering
       支持侧边标题
     }{1cm} % 1cm是侧边栏的宽度
-
-    这里是研究内容的正文。由于我们使用的是 overlay 画外框，这里的文本可
+    由于我们使用的是 overlay 画外框，这里的文本可
     以像普通 LaTeX 文档一样编写。
 
     可以随意使用列表：
@@ -907,13 +906,14 @@
     使用分隔线。
   \end{SidebarTable}
 
-  \begin{SidebarTableR}{
+  \begin{SidebarTableR}[a]{
       \centering
       照片
 
       位置
     }{4cm}
     最后，还有侧边栏在右侧的版本\texttt{SidebarTableR} 。这也许可以用来放照片
+    \lipsum[1-20]
   \end{SidebarTableR}
 \end{TableFrame}
 
