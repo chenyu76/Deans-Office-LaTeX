@@ -555,7 +555,7 @@
   \ScheduleSidebarCode
 }
 
-\NewDocumentCommand{\SidebarTableBegin}{m +m +m m}{%
+\NewDocumentCommand{\TableSidebarBegin}{m +m +m m}{%
   \stepcounter{SidebarEnvCounter}%
   \edef\SidebarThisId{\arabic{SidebarEnvCounter}}%
   \edef\SidebarThisSide{#1}%
@@ -573,7 +573,7 @@
   \nointerlineskip
   \noindent
   \RememberTablePosition{sidebarStart\SidebarThisId}%
-  \ifsamePage{SidebarTableStart\SidebarThisId}{SidebarTableEnd\SidebarThisId}{%
+  \ifsamePage{TableSidebarStart\SidebarThisId}{TableSidebarEnd\SidebarThisId}{%
   }{%
     \SidebarAddPending{\SidebarThisId}%
     \SidebarAddHeadThisPage{\SidebarThisId}%
@@ -586,17 +586,17 @@
     \addtolength{\SidebarWidthR}{\SidebarThisWidth}%
     \begin{adjustwidth}{0cm}{#4}
   \fi
-    \pageLabel{SidebarTableStart\SidebarThisId}%
+    \pageLabel{TableSidebarStart\SidebarThisId}%
 }
 
-\NewDocumentCommand{\SidebarTableEnd}{}{%
+\NewDocumentCommand{\TableSidebarEnd}{}{%
     \TableAutoSpacingBeforeRule
-    \pageLabel{SidebarTableEnd\SidebarThisId}%
+    \pageLabel{TableSidebarEnd\SidebarThisId}%
     \RememberTablePosition{sidebarEnd\SidebarThisId}%
   \end{adjustwidth}%
   \par
   \nointerlineskip
-  \ifsamePage{SidebarTableStart\SidebarThisId}{SidebarTableEnd\SidebarThisId}{%
+  \ifsamePage{TableSidebarStart\SidebarThisId}{TableSidebarEnd\SidebarThisId}{%
     \ScheduleSidebarSegmentFromId{\SidebarThisId}%
     \TableAutoSpacingMarkRule
   }{%
@@ -615,16 +615,16 @@
   \ignorespacesafterend
 }
 
-\NewDocumentEnvironment{SidebarTable}{+O{} +m m}{%
-  \SidebarTableBegin{L}{#1}{#2}{#3}%
+\NewDocumentEnvironment{TableSidebar}{+O{} +m m}{%
+  \TableSidebarBegin{L}{#1}{#2}{#3}%
 }{%
-  \SidebarTableEnd
+  \TableSidebarEnd
 }
 
-\NewDocumentEnvironment{SidebarTableR}{+O{} +m m}{%
-  \SidebarTableBegin{R}{#1}{#2}{#3}%
+\NewDocumentEnvironment{TableSidebarR}{+O{} +m m}{%
+  \TableSidebarBegin{R}{#1}{#2}{#3}%
 }{%
-  \SidebarTableEnd
+  \TableSidebarEnd
 }
 
 %========================%
@@ -673,7 +673,7 @@
 
   \TableRow{l}{ \textbf{二、研究内容：} }
 
-  \begin{SidebarTable}{
+  \begin{TableSidebar}{
       \centering
       支持侧边标题
     }{1cm} % 1cm是侧边栏的宽度
@@ -716,7 +716,7 @@
       \end{center}
       \caption{示例图片}
     \end{figure}
-  \end{SidebarTable}
+  \end{TableSidebar}
 
   % 结尾签字栏
   \TableRow{X | X}{
@@ -747,7 +747,7 @@
     较窄列 & 较宽列
   }
 
-  \begin{SidebarTable}[
+  \begin{TableSidebar}[
       \centering
       侧
 
@@ -787,15 +787,15 @@
     \TableSepLine{}
 
     使用分隔线。
-  \end{SidebarTable}
+  \end{TableSidebar}
 
-  \begin{SidebarTableR}{
+  \begin{TableSidebarR}{
       \centering
       照片
 
       位置
     }{4cm}
-    最后，还有侧边栏在右侧的版本\texttt{SidebarTableR} 。这也许可以用来放照片
-  \end{SidebarTableR}
+    最后，还有侧边栏在右侧的版本\texttt{TableSidebarR} 。这也许可以用来放照片
+  \end{TableSidebarR}
 \end{TableFrame}
 \end{document}

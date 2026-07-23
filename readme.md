@@ -64,25 +64,25 @@ xelatex main.tex
 }
 ```
 
-### 侧边栏排版 (`SidebarTable` )
+### 侧边栏排版 (`TableSidebar` )
 
 在表格左侧添加侧边栏，主体内容向右缩进。侧边栏内居中显示标题。
 
 ```latex
 % 内容可以跨页。每页自动绘制侧边栏竖线。标题在第一页的位置显示。
-% 语法: \begin{SidebarTable}[跨页时的标题]{标题}{侧边栏宽度}
+% 语法: \begin{TableSidebar}[跨页时的标题]{标题}{侧边栏宽度}
 %       ...主体内容...
-%       \end{SidebarTable}
-\begin{SidebarTable}[
+%       \end{TableSidebar}
+\begin{TableSidebar}[
     跨页侧边栏（续）
   ]{
     跨页侧边栏
   }{1cm}
   正文内容
-\end{SidebarTable}
+\end{TableSidebar}
 ```
 
-此外，还有一个侧边栏在右侧的版本 `SidebarTableR`，语法完全一致。
+此外，还有一个侧边栏在右侧的版本 `TableSidebarR`，语法完全一致。
 
 ### 分割线（`\TableSepLine`)
 
